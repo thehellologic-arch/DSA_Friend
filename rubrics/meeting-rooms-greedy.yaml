@@ -1,0 +1,60 @@
+problem_id: meeting-rooms-greedy
+rubric_version: 3
+pattern: greedy
+difficulty: 1200
+core_ask: "Given meetings with start/end times, find the max you can attend without overlap."
+
+optimal:
+  approach: "Sort by end time; greedily pick earliest-ending non-overlapping."
+  complexity: { time: "O(n log n)", space: "O(1)" }
+  key_insight: "Earliest end time leaves the most room for future meetings."
+
+acceptable_alternatives:
+  - approach: "Weighted interval scheduling DP"
+    note: "Correct but overkill; accept, note simpler greedy exists."
+
+common_wrong_approaches:
+  - id: sort_by_start
+    match_signals: ["sort by start", "earliest start", "begin time"]
+    why_wrong: "One long early meeting blocks many short ones."
+    counterexample: "[[1,10],[2,3],[4,5]]"
+  - id: sort_by_duration
+    match_signals: ["shortest", "by duration", "by length"]
+    why_wrong: "Shortest-first ignores position."
+    counterexample: "[[1,5],[4,6],[6,7]]"
+
+required_insights:
+  - id: needs_sorting
+    desc: "Recognizes sorting is needed"
+    weight: 1
+    hints:
+      - "Is the input order helpful as-is?"
+      - "Would processing them in some order help?"
+      - "You'll want to sort them first."
+  - id: sort_by_end
+    desc: "Sorts by END time specifically"
+    weight: 3
+    hints:
+      - "What ordering helps most?"
+      - "Which meeting frees you up soonest?"
+      - "Sort by end time — earliest first."
+    on_fail_suggestion: "You sorted by start; a long early meeting blocks many short ones. Re-derive with end-time."
+  - id: greedy_justification
+    desc: "Justifies why greedy is optimal"
+    weight: 2
+    hints:
+      - "Why is always taking the earliest-ending safe?"
+      - "What does picking earliest-end guarantee about remaining time?"
+  - id: complexity
+    desc: "States O(n log n)"
+    weight: 1
+    hints:
+      - "What dominates the cost?"
+      - "What does the sort cost?"
+
+edge_cases: ["empty list", "all overlapping", "ties on end time"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

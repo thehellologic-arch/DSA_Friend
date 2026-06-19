@@ -1,0 +1,15 @@
+{
+  "name": "reason",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @reason/core build && pnpm run --parallel /^dev:.*/",
+    "dev:server": "pnpm --filter @reason/server dev",
+    "dev:web": "pnpm --filter @reason/web dev",
+    "build": "pnpm --filter @reason/core build && pnpm -r build",
+    "test": "pnpm --filter @reason/core test"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

@@ -23,7 +23,7 @@ import {
 
 const PORT = Number(process.env.PORT ?? 3001);
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-flash-latest";
+const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-3.6-flash";
 const OLLAMA_BASE_URL =
   process.env.OLLAMA_BASE_URL ??
   "https://sadly-oversight-shun.ngrok-free.dev";

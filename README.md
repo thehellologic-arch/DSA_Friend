@@ -17,4 +17,4 @@ pnpm workspace with three packages:
 | Core | Pure TypeScript (scoring, state machine, recommendations) + Vitest |
 | Data | PostgreSQL 16 (`pg`); in-memory fallback for local/dev |
 | Content | Versioned YAML rubrics in `rubrics/` |
-| LLM | Swappable providers — hosted OpenAI-compatible API, or Ollama for local/dev |
+| LLM | Google Gemini API, with Ollama fallback for local/dev |

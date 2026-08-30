@@ -10,10 +10,10 @@ import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { isSkillLevel, type SkillLevel } from "@reason/core";
 import { createProgressRepository } from "./create-progress-repo.js";
+import { GeminiProvider } from "./gemini-provider.js";
 import { ensureGuest } from "./guest.js";
 import { JudgingService } from "./judging-service.js";
 import { OllamaProvider } from "./ollama-provider.js";
-import { OpenAIProvider } from "./openai-provider.js";
 import { ProgressService } from "./progress-service.js";
 import { getRubric, listProblems, loadRubrics } from "./rubric-store.js";
 import {
@@ -22,9 +22,8 @@ import {
 } from "./session-store.js";
 
 const PORT = Number(process.env.PORT ?? 3001);
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL;
-const OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4.1-mini";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-flash-latest";
 const OLLAMA_BASE_URL =
   process.env.OLLAMA_BASE_URL ??
   "https://sadly-oversight-shun.ngrok-free.dev";
@@ -38,11 +37,10 @@ function knownPatterns(): string[] {
 
 const store = new InMemorySessionStore();
 const llm =
-  OPENAI_API_KEY && OPENAI_BASE_URL
-    ? new OpenAIProvider({
-        apiKey: OPENAI_API_KEY,
-        baseUrl: OPENAI_BASE_URL,
-        model: OPENAI_MODEL,
+  GEMINI_API_KEY
+    ? new GeminiProvider({
+        apiKey: GEMINI_API_KEY,
+        model: GEMINI_MODEL,
       })
     : new OllamaProvider({
         baseUrl: OLLAMA_BASE_URL,
@@ -223,8 +221,8 @@ app.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
   }
   console.log(`Server listening on http://localhost:${PORT}`);
   console.log(
-    OPENAI_API_KEY && OPENAI_BASE_URL
-      ? `LLM: OpenAI-compatible (${OPENAI_MODEL})`
+    GEMINI_API_KEY
+      ? `LLM: Gemini (${GEMINI_MODEL})`
       : `LLM: ${OLLAMA_BASE_URL} (${OLLAMA_MODEL})`,
   );
 });

@@ -743,7 +743,9 @@ is build-out.
   - Deterministic rubric parsing, scoring, insight tracking, hint selection, and verdict generation.
   - Text-based Socratic reasoning loop with follow-ups, hints, counterexamples, and ideal-solution review.
   - Versioned YAML problem rubrics for Greedy and Hashing examples.
-  - Swappable OpenAI-compatible and Ollama LLM providers.
+  - Google Gemini REST provider using a server-side `GEMINI_API_KEY`.
+  - Gemini classification output validation through the deterministic schema.
+  - Ollama fallback when a Gemini key is not configured.
   - Guest onboarding with Beginner, Intermediate, Advanced, and Expert starting levels.
   - Optional short placement flow.
   - Per-topic ratings, mastery percentage, completed-problem count, recent performance, hint usage, and last-practiced date.
@@ -761,9 +763,6 @@ is build-out.
   - Docker Compose configuration for local PostgreSQL.
 
 - **Pending**
-  - Add a Gemini LLM provider using a server-side `GEMINI_API_KEY`.
-  - Add Gemini model and endpoint configuration without exposing the API key to the browser.
-  - Validate Gemini classifier output against the existing deterministic schema.
   - Compare Gemini grading quality with the OpenAI-compatible and Ollama providers.
   - Configure a production PostgreSQL database and apply migrations during deployment.
   - Deploy the React/Vite frontend to Vercel.

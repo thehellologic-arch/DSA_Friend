@@ -735,3 +735,45 @@ is build-out.
 3. Voice in MVP or Phase 3? (Friction vs cheat-resistance tradeoff.)
 4. Monetization (subscription / B2B interview-prep / freemium)?
 5. Cold-start: niche community vs AI-generated-curated content seeding?
+
+## 18. Current Implementation Status
+
+- **Done**
+  - TypeScript monorepo with shared core, Fastify server, and React/Vite web app.
+  - Deterministic rubric parsing, scoring, insight tracking, hint selection, and verdict generation.
+  - Text-based Socratic reasoning loop with follow-ups, hints, counterexamples, and ideal-solution review.
+  - Versioned YAML problem rubrics for Greedy and Hashing examples.
+  - Swappable OpenAI-compatible and Ollama LLM providers.
+  - Guest onboarding with Beginner, Intermediate, Advanced, and Expert starting levels.
+  - Optional short placement flow.
+  - Per-topic ratings, mastery percentage, completed-problem count, recent performance, hint usage, and last-practiced date.
+  - Topic statuses for Not started, Practicing, Recommended, Mastered, and Needs review.
+  - Open five-level roadmap with no locked difficulty levels.
+  - Roadmap level selection, problem selection, Practice navigation, and Back navigation.
+  - Adaptive problem recommendations based on rating proximity, recent mistakes, review timing, and user-selected filters.
+  - Post-verdict rating change, mastery change, newly mastered insights, and recommended next problem.
+  - Roadmap, Practice, and Profile bottom navigation.
+  - Profile skill-level changes while preserving ratings for topics already practiced.
+  - Persistent-attempt, topic-progress, user, and rating-event PostgreSQL schema and repository.
+  - In-memory storage fallback when PostgreSQL is unavailable.
+  - Guest identity through an HTTP-only cookie.
+  - Progress, roadmap, attempt-history, recommendation, problem-filter, and skill-level APIs.
+  - Docker Compose configuration for local PostgreSQL.
+
+- **Pending**
+  - Add a Gemini LLM provider using a server-side `GEMINI_API_KEY`.
+  - Add Gemini model and endpoint configuration without exposing the API key to the browser.
+  - Validate Gemini classifier output against the existing deterministic schema.
+  - Compare Gemini grading quality with the OpenAI-compatible and Ollama providers.
+  - Configure a production PostgreSQL database and apply migrations during deployment.
+  - Deploy the React/Vite frontend to Vercel.
+  - Adapt or host the Fastify API on a production backend compatible with persistent server workloads.
+  - Configure production API routing from the Vercel frontend to the backend.
+  - Store `GEMINI_API_KEY`, `DATABASE_URL`, and other production values as deployment secrets.
+  - Add production CORS, cookie, HTTPS, and trusted-origin configuration.
+  - Add more reviewed problem rubrics across all topics and rating levels.
+  - Add on-demand unit, integration, API, and end-to-end tests.
+  - Complete mobile, keyboard, screen-reader, reduced-motion, and contrast verification.
+  - Add structured logging, error tracking, health checks, usage monitoring, and cost monitoring.
+  - Add database backup, restore, migration rollback, and retention procedures.
+  - Run release verification before sharing the hosted URL.

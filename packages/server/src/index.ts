@@ -5,15 +5,26 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
+import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import Fastify from "fastify";
-import { getTranscript } from "./session-store.js";
-import { loadRubrics, getRubric, listProblems } from "./rubric-store.js";
-import { OllamaProvider } from "./ollama-provider.js";
-import { InMemorySessionStore } from "./session-store.js";
+import { isSkillLevel, type SkillLevel } from "@reason/core";
+import { createProgressRepository } from "./create-progress-repo.js";
+import { ensureGuest } from "./guest.js";
 import { JudgingService } from "./judging-service.js";
+import { OllamaProvider } from "./ollama-provider.js";
+import { OpenAIProvider } from "./openai-provider.js";
+import { ProgressService } from "./progress-service.js";
+import { getRubric, listProblems, loadRubrics } from "./rubric-store.js";
+import {
+  getTranscript,
+  InMemorySessionStore,
+} from "./session-store.js";
 
 const PORT = Number(process.env.PORT ?? 3001);
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL;
+const OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4.1-mini";
 const OLLAMA_BASE_URL =
   process.env.OLLAMA_BASE_URL ??
   "https://sadly-oversight-shun.ngrok-free.dev";
@@ -21,19 +32,97 @@ const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "gemma4:26b";
 
 loadRubrics();
 
+function knownPatterns(): string[] {
+  return [...new Set(listProblems().map((problem) => problem.pattern))];
+}
+
 const store = new InMemorySessionStore();
-const llm = new OllamaProvider({
-  baseUrl: OLLAMA_BASE_URL,
-  model: OLLAMA_MODEL,
-});
-const judging = new JudgingService(store, llm);
+const llm =
+  OPENAI_API_KEY && OPENAI_BASE_URL
+    ? new OpenAIProvider({
+        apiKey: OPENAI_API_KEY,
+        baseUrl: OPENAI_BASE_URL,
+        model: OPENAI_MODEL,
+      })
+    : new OllamaProvider({
+        baseUrl: OLLAMA_BASE_URL,
+        model: OLLAMA_MODEL,
+      });
+const progressRepo = await createProgressRepository();
+const progress = new ProgressService(progressRepo, () => listProblems());
+const judging = new JudgingService(store, llm, progress);
 
 const app = Fastify({ logger: true });
-await app.register(cors, { origin: true });
+await app.register(cors, { origin: true, credentials: true });
+await app.register(cookie);
 
-app.get("/problems", async () => {
-  return { problems: listProblems() };
+app.get<{ Querystring: { pattern?: string; difficulty?: string } }>(
+  "/problems",
+  async (req) => {
+    const pattern = req.query.pattern?.trim();
+    const difficulty = req.query.difficulty
+      ? Number(req.query.difficulty)
+      : undefined;
+    let problems = listProblems();
+    if (pattern) {
+      problems = problems.filter((problem) => problem.pattern === pattern);
+    }
+    if (Number.isFinite(difficulty)) {
+      problems = problems.filter((problem) => problem.difficulty === difficulty);
+    }
+    return { problems };
+  },
+);
+
+app.get("/me/progress", async (req, reply) => {
+  const userId = await ensureGuest(req, reply, progress, knownPatterns());
+  return progress.getProgress(userId);
 });
+
+app.get("/me/roadmap", async (req, reply) => {
+  const userId = await ensureGuest(req, reply, progress, knownPatterns());
+  return progress.getRoadmap(userId);
+});
+
+app.get("/me/attempts", async (req, reply) => {
+  const userId = await ensureGuest(req, reply, progress, knownPatterns());
+  return { attempts: await progress.listAttempts(userId) };
+});
+
+app.get<{ Querystring: { pattern?: string; difficulty?: string } }>(
+  "/me/recommend",
+  async (req, reply) => {
+    const userId = await ensureGuest(req, reply, progress, knownPatterns());
+    const pattern = req.query.pattern?.trim();
+    const difficulty = req.query.difficulty
+      ? Number(req.query.difficulty)
+      : undefined;
+    const problems = await progress.recommend(userId, 5, undefined, {
+      pattern: pattern || undefined,
+      difficulty: Number.isFinite(difficulty) ? difficulty : undefined,
+    });
+    return { problems };
+  },
+);
+
+app.post<{ Body: { skillLevel?: SkillLevel } }>(
+  "/me/skill-level",
+  async (req, reply) => {
+    const skillLevel = req.body?.skillLevel;
+    if (!skillLevel || !isSkillLevel(skillLevel)) {
+      return reply.status(400).send({ error: "skillLevel is required" });
+    }
+    const userId = await ensureGuest(
+      req,
+      reply,
+      progress,
+      knownPatterns(),
+      skillLevel,
+    );
+    await progress.setSkillLevel(userId, skillLevel, knownPatterns(), true);
+    return progress.getProgress(userId);
+  },
+);
 
 app.post<{ Body: { problemSlug: string } }>("/sessions", async (req, reply) => {
   const { problemSlug } = req.body ?? {};
@@ -46,7 +135,8 @@ app.post<{ Body: { problemSlug: string } }>("/sessions", async (req, reply) => {
     return reply.status(404).send({ error: "Problem not found" });
   }
 
-  const session = store.create(problemSlug, rubric);
+  const userId = await ensureGuest(req, reply, progress, knownPatterns());
+  const session = store.create(problemSlug, rubric, userId);
   return {
     sessionId: session.id,
     coreAsk: rubric.core_ask,
@@ -105,11 +195,36 @@ app.post<{
   }
 });
 
+app.post<{
+  Params: { id: string };
+  Body: { idempotencyKey: string };
+}>("/sessions/:id/verdict", async (req, reply) => {
+  const { idempotencyKey } = req.body ?? {};
+  if (!idempotencyKey) {
+    return reply.status(400).send({ error: "idempotencyKey is required" });
+  }
+
+  try {
+    return await judging.revealVerdict(req.params.id, idempotencyKey);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    if (message === "Session not found") {
+      return reply.status(404).send({ error: message });
+    }
+    req.log.error(err);
+    return reply.status(500).send({ error: `Verdict failed: ${message}` });
+  }
+});
+
 app.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
   if (err) {
     app.log.error(err);
     process.exit(1);
   }
   console.log(`Server listening on http://localhost:${PORT}`);
-  console.log(`LLM: ${OLLAMA_BASE_URL} (${OLLAMA_MODEL})`);
+  console.log(
+    OPENAI_API_KEY && OPENAI_BASE_URL
+      ? `LLM: OpenAI-compatible (${OPENAI_MODEL})`
+      : `LLM: ${OLLAMA_BASE_URL} (${OLLAMA_MODEL})`,
+  );
 });

@@ -5,12 +5,15 @@ import {
   buildExchangeReview,
   mergeInsightResults,
   nextTurnAction,
+  revealVerdict as createVerdict,
   scanWrongApproaches,
   synthesizeWrongApproachClassification,
   type ClassifyRequest,
   type TurnAction,
+  type Verdict,
 } from "@reason/core";
 import type { LLMProvider } from "./ollama-provider.js";
+import type { ProgressService, ProgressUpdate } from "./progress-service.js";
 import {
   getTranscript,
   type InMemorySessionStore,
@@ -23,6 +26,7 @@ export interface TurnResponse {
   transcript: { role: "USER" | "AI"; content: string }[];
   hintsUsed: number;
   state: string;
+  progress?: ProgressUpdate;
 }
 
 function actionMeta(action: TurnAction): {
@@ -45,6 +49,7 @@ export class JudgingService {
   constructor(
     private store: InMemorySessionStore,
     private llm: LLMProvider,
+    private progress: ProgressService,
   ) {}
 
   async handleTurn(
@@ -58,6 +63,32 @@ export class JudgingService {
     const cached = session.idempotencyCache.get(idempotencyKey);
     if (cached) {
       return this.buildResponse(session, cached);
+    }
+
+    if (session.context.state === "VERDICT") {
+      session.turns.push({
+        idx: session.turns.length,
+        role: "USER",
+        content: message,
+        idempotencyKey,
+      });
+
+      const text = await this.llm.clarify(
+        {
+          question: message,
+          history: getTranscript(session).slice(0, -1),
+        },
+        session.rubric,
+      );
+      const action: TurnAction = { kind: "clarification", text };
+
+      session.turns.push({
+        idx: session.turns.length,
+        role: "AI",
+        content: text,
+      });
+      session.idempotencyCache.set(idempotencyKey, action);
+      return this.buildResponse(session, action);
     }
 
     session.turns.push({
@@ -133,6 +164,8 @@ export class JudgingService {
         verdict: { ...action.verdict, exchanges },
       };
       updateSessionState(session, "VERDICT");
+    } else if (action.kind === "verdict_ready") {
+      updateSessionState(session, "AWAIT_VERDICT");
     } else {
       updateSessionState(session, "FOLLOW_UP");
     }
@@ -147,8 +180,59 @@ export class JudgingService {
       ...meta,
     });
 
+    if (action.kind === "verdict") {
+      await this.persistVerdict(session, action.verdict);
+    }
+
     session.idempotencyCache.set(idempotencyKey, action);
     return this.buildResponse(session, action);
+  }
+
+  async revealVerdict(
+    sessionId: string,
+    idempotencyKey: string,
+  ): Promise<TurnResponse> {
+    const session = this.store.get(sessionId);
+    if (!session) throw new Error("Session not found");
+
+    const cached = session.idempotencyCache.get(idempotencyKey);
+    if (cached) return this.buildResponse(session, cached);
+
+    let action = createVerdict(session.context, session.rubric);
+    if (action.kind !== "verdict") {
+      throw new Error("Failed to create verdict");
+    }
+
+    action = {
+      kind: "verdict",
+      verdict: {
+        ...action.verdict,
+        exchanges: buildExchangeReview(session.turns, session.rubric),
+      },
+    };
+    session.turns.push({
+      idx: session.turns.length,
+      role: "AI",
+      content: actionToAiMessage(action),
+    });
+    updateSessionState(session, "VERDICT");
+    await this.persistVerdict(session, action.verdict);
+    session.idempotencyCache.set(idempotencyKey, action);
+    return this.buildResponse(session, action);
+  }
+
+  private async persistVerdict(session: Session, verdict: Verdict) {
+    session.progressUpdate = await this.progress.recordVerdict({
+      userId: session.userId,
+      sessionId: session.id,
+      problemSlug: session.problemSlug,
+      pattern: session.rubric.pattern,
+      difficulty: session.rubric.difficulty,
+      coreAsk: session.rubric.core_ask,
+      selfCorrections: session.context.selfCorrections,
+      transcript: getTranscript(session),
+      verdict,
+    });
   }
 
   private buildResponse(session: Session, action: TurnAction): TurnResponse {
@@ -157,6 +241,7 @@ export class JudgingService {
       transcript: getTranscript(session),
       hintsUsed: session.context.hintsUsed,
       state: session.context.state,
+      progress: action.kind === "verdict" ? session.progressUpdate : undefined,
     };
   }
 }

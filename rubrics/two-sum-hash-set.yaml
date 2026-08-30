@@ -1,0 +1,67 @@
+problem_id: two-sum-hash-set
+rubric_version: 1
+pattern: hashing
+difficulty: 900
+core_ask: "Given a list of numbers and a target, determine whether any two different elements add up to the target."
+
+optimal:
+  approach: "Scan once while storing previously seen values in a hash set; for each value, check whether target minus that value has already been seen."
+  complexity: { time: "O(n)", space: "O(n)" }
+  key_insight: "Looking up each required complement in a hash set avoids checking every pair."
+  examples:
+    - input: "numbers = [2,7,11,15], target = 9"
+      output: "true"
+      explanation: "When scanning 7, its complement 2 is already in the set."
+    - input: "numbers = [3,3], target = 6"
+      output: "true"
+      explanation: "The second 3 finds the first 3, so two different elements are used."
+    - input: "numbers = [1,2,4], target = 8"
+      output: "false"
+      explanation: "No value finds its required complement among previously seen values."
+
+acceptable_alternatives:
+  - approach: "Sort the values and use two pointers."
+    note: "Correct in O(n log n) time, but hashing is faster on average."
+
+common_wrong_approaches:
+  - id: brute_force_pairs
+    match_signals: ["nested loops", "check every pair", "all pairs", "brute force"]
+    why_wrong: "Checking every pair works but takes O(n²) time."
+    counterexample: "A list with 100,000 values"
+  - id: reuse_same_element
+    match_signals: ["target / 2", "same element twice", "reuse the element"]
+    why_wrong: "A value cannot pair with itself unless it appears at least twice."
+    counterexample: "numbers = [3], target = 6"
+
+required_insights:
+  - id: complement
+    desc: "Computes target minus the current value"
+    weight: 3
+    hints:
+      - "For the current number, what exact partner would complete the target?"
+      - "Compute target - current value."
+  - id: hash_lookup
+    desc: "Uses a hash set for constant-time complement lookup"
+    weight: 3
+    hints:
+      - "How can you quickly know whether that partner appeared earlier?"
+      - "Store seen values in a hash set."
+  - id: distinct_elements
+    desc: "Checks before inserting to avoid reusing the same element"
+    weight: 1
+    hints:
+      - "Could one array position accidentally be used twice?"
+      - "Check for the complement before adding the current value."
+  - id: complexity
+    desc: "States O(n) time and O(n) space"
+    weight: 1
+    hints:
+      - "How many times is each number processed?"
+      - "The scan is O(n) time and the set uses O(n) space."
+
+edge_cases: ["empty list", "one element", "duplicate values", "negative values"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

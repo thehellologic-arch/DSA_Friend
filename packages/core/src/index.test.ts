@@ -203,7 +203,7 @@ describe("nextTurnAction", () => {
     }
   });
 
-  it("returns optimal verdict when all insights yes", () => {
+  it("marks the verdict ready when all insights are resolved", () => {
     const insights = rubric.required_insights.map((i) => ({
       id: i.id,
       status: "yes" as const,
@@ -215,23 +215,16 @@ describe("nextTurnAction", () => {
       rubric,
       classify({ insights }),
     );
-    expect(action.kind).toBe("verdict");
-    if (action.kind === "verdict") {
-      expect(action.verdict.label).toBe("optimal");
-      expect(action.verdict.score).toBe(100);
-    }
+    expect(action.kind).toBe("verdict_ready");
   });
 
-  it("returns verdict when hint budget exhausted", () => {
+  it("marks the verdict ready when hint budget is exhausted", () => {
     const action = nextTurnAction(
       makeCtx({ hintsUsed: 3 }),
       rubric,
       classify({ insights: initInsightResults(rubric) }),
     );
-    expect(action.kind).toBe("verdict");
-    if (action.kind === "verdict") {
-      expect(action.verdict.label).toBe("incomplete");
-    }
+    expect(action.kind).toBe("verdict_ready");
   });
 });
 

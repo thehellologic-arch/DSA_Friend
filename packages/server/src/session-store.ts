@@ -7,6 +7,7 @@ import type {
   TurnAction,
   TurnView,
 } from "@reason/core";
+import type { ProgressUpdate } from "./progress-service.js";
 
 export interface StoredTurn {
   idx: number;
@@ -20,19 +21,22 @@ export interface StoredTurn {
 
 export interface Session {
   id: string;
+  userId: string;
   problemSlug: string;
   rubric: Rubric;
   context: SessionContext;
   turns: StoredTurn[];
   idempotencyCache: Map<string, TurnAction>;
+  progressUpdate?: ProgressUpdate;
 }
 
 export class InMemorySessionStore {
   private sessions = new Map<string, Session>();
 
-  create(problemSlug: string, rubric: Rubric): Session {
+  create(problemSlug: string, rubric: Rubric, userId: string): Session {
     const session: Session = {
       id: randomUUID(),
+      userId,
       problemSlug,
       rubric,
       context: {

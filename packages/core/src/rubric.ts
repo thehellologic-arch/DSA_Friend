@@ -16,6 +16,15 @@ export const RubricSchema = z.object({
       space: z.string(),
     }),
     key_insight: z.string(),
+    examples: z
+      .array(
+        z.object({
+          input: z.string(),
+          output: z.string(),
+          explanation: z.string(),
+        }),
+      )
+      .optional(),
   }),
   acceptable_alternatives: z
     .array(
@@ -79,6 +88,7 @@ export type SessionState =
   | "PITCH"
   | "AWAIT_APPROACH"
   | "FOLLOW_UP"
+  | "AWAIT_VERDICT"
   | "VERDICT"
   | "COMMITTED";
 
@@ -122,6 +132,12 @@ export interface Verdict {
   score: number;
   insights: VerdictInsight[];
   suggestion: string;
+  idealSolution: {
+    approach: string;
+    keyInsight: string;
+    complexity: { time: string; space: string };
+    examples: { input: string; output: string; explanation: string }[];
+  };
   hintsUsed: number;
   exchanges: FollowUpExchange[];
 }
@@ -130,7 +146,9 @@ export type TurnAction =
   | { kind: "follow_up"; insightId: string; text: string }
   | { kind: "hint"; insightId: string; text: string }
   | { kind: "counterexample"; insightId: string; input: string; text: string }
-  | { kind: "verdict"; verdict: Verdict };
+  | { kind: "verdict_ready"; text: string }
+  | { kind: "verdict"; verdict: Verdict }
+  | { kind: "clarification"; text: string };
 
 export const MAX_HINTS_PER_SESSION = 1;
 

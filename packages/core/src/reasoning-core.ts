@@ -148,8 +148,31 @@ function buildVerdict(
     ),
     insights: buildVerdictInsights(rubric, insights),
     suggestion: buildSuggestion(rubric, insights, matchedWrong),
+    idealSolution: {
+      approach: rubric.optimal.approach,
+      keyInsight: rubric.optimal.key_insight,
+      complexity: rubric.optimal.complexity,
+      examples: rubric.optimal.examples ?? [],
+    },
     hintsUsed: ctx.hintsUsed,
     exchanges,
+  };
+}
+
+export function revealVerdict(
+  ctx: SessionContext,
+  rubric: Rubric,
+): TurnAction {
+  return {
+    kind: "verdict",
+    verdict: buildVerdict(ctx, rubric, null, false),
+  };
+}
+
+function verdictReady(): TurnAction {
+  return {
+    kind: "verdict_ready",
+    text: "Your reasoning is ready to evaluate. Would you like to see the verdict now, or keep reasoning?",
   };
 }
 
@@ -196,6 +219,10 @@ export function nextTurnAction(
 ): TurnAction {
   const matchedWrong = classification.matchedWrongApproach ?? null;
 
+  if (allInsightsResolved(ctx.insightResults)) {
+    return verdictReady();
+  }
+
   if (matchedWrong) {
     const wrong = findWrongApproach(rubric, matchedWrong);
     if (wrong) {
@@ -208,18 +235,8 @@ export function nextTurnAction(
     }
   }
 
-  if (allInsightsResolved(ctx.insightResults)) {
-    return {
-      kind: "verdict",
-      verdict: buildVerdict(ctx, rubric, matchedWrong, false),
-    };
-  }
-
   if (ctx.hintsUsed >= MAX_HINTS_PER_SESSION) {
-    return {
-      kind: "verdict",
-      verdict: buildVerdict(ctx, rubric, matchedWrong, true),
-    };
+    return verdictReady();
   }
 
   const nextInsight = pickNextUnresolvedInsight(
@@ -228,10 +245,7 @@ export function nextTurnAction(
   );
 
   if (!nextInsight) {
-    return {
-      kind: "verdict",
-      verdict: buildVerdict(ctx, rubric, matchedWrong, true),
-    };
+    return verdictReady();
   }
 
   const probesUsed = ctx.probesUsedByInsight[nextInsight.id] ?? 0;
@@ -287,6 +301,10 @@ export function actionToAiMessage(action: TurnAction): string {
     case "hint":
       return action.text;
     case "counterexample":
+      return action.text;
+    case "verdict_ready":
+      return action.text;
+    case "clarification":
       return action.text;
     case "verdict": {
       const v = action.verdict;

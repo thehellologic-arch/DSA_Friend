@@ -27,6 +27,7 @@ const REQUIRED_CASE_IDS = [
   "novel-paraphrase",
   "irrelevant-off-topic",
   "correction-after-challenge",
+  "continued-ambiguity-after-challenge",
 ] as const;
 
 type ExpectedRoute =
@@ -280,6 +281,14 @@ describe("novel evaluation golden corpus", () => {
         );
       }
 
+      if (golden.id === "continued-ambiguity-after-challenge") {
+        expect(hasPriorChallenge(priorTurns)).toBe(true);
+        expect(evaluation.approach.criticalGaps.length).toBeGreaterThan(0);
+        expect(outcome).toBe("plausible_unverified");
+        expect(outcome).not.toBe("novel_challenge");
+        expect(evaluation.recommendation).not.toBe("challenge");
+      }
+
       if (golden.id === "irrelevant-off-topic") {
         expect(evaluation.messageKind).toBe("off_topic");
       }
@@ -289,6 +298,20 @@ describe("novel evaluation golden corpus", () => {
           (p) => p.caseId === "duplicate_match",
         );
         expect(dup?.output).toBe(false);
+        expect(outcome).toBe("incorrect");
+        const algorithmText = [
+          golden.inputText,
+          ...evaluation.approach.steps,
+          ...evaluation.approach.evidence.map((e) => e.quote),
+        ]
+          .join(" ")
+          .toLowerCase();
+        expect(
+          /different (value|complement)|distinct (value|complement)|not (the )?same value|exclude (the )?current|other than (itself|the current)/i.test(
+            algorithmText,
+          ),
+          `${golden.id} algorithm must require a different complement so false on duplicates is faithful`,
+        ).toBe(true);
       }
 
       if (golden.id === "duplicate-safe-novel") {

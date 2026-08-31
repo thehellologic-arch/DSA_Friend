@@ -186,28 +186,29 @@
     },
     {
       "id": "duplicate-unsafe-novel",
-      "inputText": "I put every number into a set of unique values first, then look for target - x. Duplicates do not matter because sets remove them.",
+      "inputText": "I first dedupe the array into a unique set. Then for each value x I look only for a different complement target - x that is not the same value as x; if x equals target - x I skip it because I already removed duplicates.",
       "priorTurns": [],
       "expectedRoute": "novel",
       "expectedOutcome": "incorrect",
-      "rationale": "Deduplicating before the search incorrectly predicts false on [3,3] target 6; the oracle counterexample yields incorrect.",
+      "rationale": "After dedupe, requiring a different complement excludes 3 pairing with another 3 on [3,3] target 6, so predicting false is faithful and the oracle yields incorrect.",
       "evaluatorFixture": {
         "messageKind": "approach",
         "route": "novel",
         "canonicalInsights": [],
         "approach": {
           "steps": [
-            "Insert all numbers into a set to remove duplicates",
-            "For each remaining value look for its complement in the set"
+            "Dedupe the array into a unique set first",
+            "For each remaining value x, look only for a different complement target - x that is not the same value as x",
+            "If x equals target - x, skip it because duplicates were already removed"
           ],
-          "state": ["deduplicated set"],
+          "state": ["deduplicated unique set"],
           "invariant": null,
           "claimedComplexity": { "time": "O(n)", "space": "O(n)" },
-          "assumptions": ["Duplicates can be discarded"],
+          "assumptions": ["Duplicates can be discarded before searching"],
           "evidence": [
             {
-              "claim": "dedupe first",
-              "quote": "sets remove them"
+              "claim": "require a different complement after dedupe",
+              "quote": "look only for a different complement target - x that is not the same value as x"
             }
           ],
           "criticalGaps": []
@@ -216,17 +217,17 @@
           {
             "caseId": "basic_match",
             "output": true,
-            "reasoning": "2 and 7 remain after dedupe."
+            "reasoning": "2 and 7 are different values that remain after dedupe."
           },
           {
             "caseId": "duplicate_match",
             "output": false,
-            "reasoning": "After dedupe only one 3 remains, so the approach claims no pair."
+            "reasoning": "After dedupe only one 3 remains, and the algorithm skips same-value complements."
           },
           {
             "caseId": "no_match",
             "output": false,
-            "reasoning": "No pair reaches 8."
+            "reasoning": "No different complement reaches 8."
           }
         ],
         "recommendation": "refuted",
@@ -401,6 +402,55 @@
         "recommendation": "supported",
         "challenge": null,
         "confidence": 0.93
+      }
+    },
+    {
+      "id": "continued-ambiguity-after-challenge",
+      "inputText": "I still use a set somehow, but I am not sure when I insert versus when I look up.",
+      "priorTurns": [
+        {
+          "role": "USER",
+          "content": "I keep a set and look for complements."
+        },
+        {
+          "role": "AI",
+          "content": "When do you insert the current value relative to the complement check?"
+        }
+      ],
+      "expectedRoute": "novel",
+      "expectedOutcome": "plausible_unverified",
+      "rationale": "After one novel validation challenge, the answer remains ambiguous with critical gaps and incomplete predictions; policy abstains as plausible_unverified and must not issue a second challenge.",
+      "evaluatorFixture": {
+        "messageKind": "approach",
+        "route": "novel",
+        "canonicalInsights": [],
+        "approach": {
+          "steps": ["Keep a set", "Look up complements somehow"],
+          "state": ["set"],
+          "invariant": null,
+          "claimedComplexity": null,
+          "assumptions": [],
+          "evidence": [
+            {
+              "claim": "uses a set",
+              "quote": "I still use a set somehow"
+            }
+          ],
+          "criticalGaps": [
+            "Insert timing relative to complement check remains unclear after the challenge.",
+            "Duplicate handling is still unspecified."
+          ]
+        },
+        "casePredictions": [
+          {
+            "caseId": "basic_match",
+            "output": true,
+            "reasoning": "Guesses true without a clear procedure."
+          }
+        ],
+        "recommendation": "supported",
+        "challenge": null,
+        "confidence": 0.35
       }
     }
   ]

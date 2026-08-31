@@ -1,0 +1,407 @@
+{
+  "problemId": "two-sum-hash-set",
+  "cases": [
+    {
+      "id": "canonical-hash-set",
+      "inputText": "I scan the list once and store previously seen values in a hash set. For each number x I check whether target - x is already in the set, then insert x. This is O(n) time and O(n) space.",
+      "priorTurns": [],
+      "expectedRoute": "known_canonical",
+      "expectedOutcome": "optimal",
+      "rationale": "Expert-labeled canonical hash-set explanation with O(n) claimed time; case predictions match the oracle on all Two Sum validation cases.",
+      "evaluatorFixture": {
+        "messageKind": "approach",
+        "route": "known_canonical",
+        "canonicalInsights": [
+          { "id": "complement", "status": "yes", "evidence": "checks target - x" },
+          { "id": "hash_lookup", "status": "yes", "evidence": "hash set of seen values" },
+          { "id": "distinct_elements", "status": "yes", "evidence": "check before insert" },
+          { "id": "complexity", "status": "yes", "evidence": "O(n) time and space" }
+        ],
+        "approach": {
+          "steps": [
+            "Scan once",
+            "Look up complement in a hash set of previously seen values",
+            "Insert the current value after the lookup"
+          ],
+          "state": ["seen hash set"],
+          "invariant": "The set holds values from indices already processed.",
+          "claimedComplexity": { "time": "O(n)", "space": "O(n)" },
+          "assumptions": [],
+          "evidence": [
+            {
+              "claim": "hash set complement lookup",
+              "quote": "store previously seen values in a hash set"
+            }
+          ],
+          "criticalGaps": []
+        },
+        "casePredictions": [
+          {
+            "caseId": "basic_match",
+            "output": true,
+            "reasoning": "When scanning 7, complement 2 is already in the set."
+          },
+          {
+            "caseId": "duplicate_match",
+            "output": true,
+            "reasoning": "Second 3 finds the first 3 already stored."
+          },
+          {
+            "caseId": "no_match",
+            "output": false,
+            "reasoning": "No previously seen complement reaches 8."
+          }
+        ],
+        "recommendation": "supported",
+        "challenge": null,
+        "confidence": 0.95
+      }
+    },
+    {
+      "id": "sorting-two-pointers",
+      "inputText": "I would sort the array and then use two pointers from both ends, moving the left pointer or right pointer based on the sum until they meet.",
+      "priorTurns": [],
+      "expectedRoute": "local_alternative",
+      "expectedOutcome": "existing_tutor_path",
+      "rationale": "Match signals for the two_pointers acceptable alternative fire locally; no novel evaluator call is needed.",
+      "evaluatorFixture": null
+    },
+    {
+      "id": "sorting-binary-search",
+      "inputText": "Sort a copy of the numbers, then for each value x binary-search for target - x among the later indices so I never reuse the same position. Overall time is O(n log n).",
+      "priorTurns": [],
+      "expectedRoute": "novel",
+      "expectedOutcome": "acceptable",
+      "rationale": "Correct novel approach with matching oracle predictions but claimed time worse than O(n), so evidence gates yield acceptable rather than optimal.",
+      "evaluatorFixture": {
+        "messageKind": "approach",
+        "route": "novel",
+        "canonicalInsights": [],
+        "approach": {
+          "steps": [
+            "Sort a copy of the array",
+            "For each index i, binary-search for target - numbers[i] in the suffix"
+          ],
+          "state": ["sorted copy", "current index"],
+          "invariant": "Binary search only considers indices after the current one.",
+          "claimedComplexity": { "time": "O(n log n)", "space": "O(n)" },
+          "assumptions": ["Sorting a copy is allowed"],
+          "evidence": [
+            {
+              "claim": "binary search after sorting",
+              "quote": "binary-search for target - x among the later indices"
+            }
+          ],
+          "criticalGaps": []
+        },
+        "casePredictions": [
+          {
+            "caseId": "basic_match",
+            "output": true,
+            "reasoning": "After sorting, 2 pairs with 7."
+          },
+          {
+            "caseId": "duplicate_match",
+            "output": true,
+            "reasoning": "Two distinct 3s remain after sorting."
+          },
+          {
+            "caseId": "no_match",
+            "output": false,
+            "reasoning": "No partner for any value reaches 8."
+          }
+        ],
+        "recommendation": "supported",
+        "challenge": null,
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "brute-force-pairs",
+      "inputText": "I would use nested loops to check every pair of indices and see if they sum to the target. That is O(n^2) time, which is correct but slow.",
+      "priorTurns": [],
+      "expectedRoute": "local_wrong",
+      "expectedOutcome": "existing_tutor_path",
+      "rationale": "Brute-force pair enumeration matches the curated wrong-approach signals and stays on the deterministic tutor path.",
+      "evaluatorFixture": null
+    },
+    {
+      "id": "reuse-same-element",
+      "inputText": "If any value equals target / 2 I can reuse the element twice to form the pair.",
+      "priorTurns": [],
+      "expectedRoute": "local_wrong",
+      "expectedOutcome": "existing_tutor_path",
+      "rationale": "Reuse-same-element signals catch claiming a single occurrence can pair with itself.",
+      "evaluatorFixture": null
+    },
+    {
+      "id": "duplicate-safe-novel",
+      "inputText": "I build a frequency map of how many times each number appears, then for each key x I check whether target - x exists with enough multiplicity when x equals its complement.",
+      "priorTurns": [],
+      "expectedRoute": "novel",
+      "expectedOutcome": "optimal",
+      "rationale": "Novel frequency-map approach correctly predicts duplicate_match true and claims O(n) time.",
+      "evaluatorFixture": {
+        "messageKind": "approach",
+        "route": "novel",
+        "canonicalInsights": [],
+        "approach": {
+          "steps": [
+            "Count frequencies in a hash map",
+            "For each key x, require count[target - x] >= 1, or >= 2 when x * 2 = target"
+          ],
+          "state": ["frequency map"],
+          "invariant": "Multiplicity rules prevent reusing one occurrence twice.",
+          "claimedComplexity": { "time": "O(n)", "space": "O(n)" },
+          "assumptions": [],
+          "evidence": [
+            {
+              "claim": "duplicate-safe multiplicity check",
+              "quote": "enough multiplicity when x equals its complement"
+            }
+          ],
+          "criticalGaps": []
+        },
+        "casePredictions": [
+          {
+            "caseId": "basic_match",
+            "output": true,
+            "reasoning": "2 and 7 both appear once."
+          },
+          {
+            "caseId": "duplicate_match",
+            "output": true,
+            "reasoning": "3 appears twice so 3+3 is allowed."
+          },
+          {
+            "caseId": "no_match",
+            "output": false,
+            "reasoning": "No key has a valid partner."
+          }
+        ],
+        "recommendation": "supported",
+        "challenge": null,
+        "confidence": 0.92
+      }
+    },
+    {
+      "id": "duplicate-unsafe-novel",
+      "inputText": "I put every number into a set of unique values first, then look for target - x. Duplicates do not matter because sets remove them.",
+      "priorTurns": [],
+      "expectedRoute": "novel",
+      "expectedOutcome": "incorrect",
+      "rationale": "Deduplicating before the search incorrectly predicts false on [3,3] target 6; the oracle counterexample yields incorrect.",
+      "evaluatorFixture": {
+        "messageKind": "approach",
+        "route": "novel",
+        "canonicalInsights": [],
+        "approach": {
+          "steps": [
+            "Insert all numbers into a set to remove duplicates",
+            "For each remaining value look for its complement in the set"
+          ],
+          "state": ["deduplicated set"],
+          "invariant": null,
+          "claimedComplexity": { "time": "O(n)", "space": "O(n)" },
+          "assumptions": ["Duplicates can be discarded"],
+          "evidence": [
+            {
+              "claim": "dedupe first",
+              "quote": "sets remove them"
+            }
+          ],
+          "criticalGaps": []
+        },
+        "casePredictions": [
+          {
+            "caseId": "basic_match",
+            "output": true,
+            "reasoning": "2 and 7 remain after dedupe."
+          },
+          {
+            "caseId": "duplicate_match",
+            "output": false,
+            "reasoning": "After dedupe only one 3 remains, so the approach claims no pair."
+          },
+          {
+            "caseId": "no_match",
+            "output": false,
+            "reasoning": "No pair reaches 8."
+          }
+        ],
+        "recommendation": "refuted",
+        "challenge": null,
+        "confidence": 0.7
+      }
+    },
+    {
+      "id": "underspecified-use-a-map",
+      "inputText": "I would just use a map.",
+      "priorTurns": [],
+      "expectedRoute": "underspecified",
+      "expectedOutcome": "novel_challenge",
+      "rationale": "Bare 'use a map' leaves critical gaps; the first evaluation should ask one challenge rather than accept or reject.",
+      "evaluatorFixture": {
+        "messageKind": "approach",
+        "route": "underspecified",
+        "canonicalInsights": [],
+        "approach": {
+          "steps": ["Use a map"],
+          "state": ["map"],
+          "invariant": null,
+          "claimedComplexity": null,
+          "assumptions": [],
+          "evidence": [
+            {
+              "claim": "uses a map",
+              "quote": "use a map"
+            }
+          ],
+          "criticalGaps": [
+            "Does not say what the map stores or how complements are checked.",
+            "No explanation of duplicate handling or claimed complexity."
+          ]
+        },
+        "casePredictions": [],
+        "recommendation": "challenge",
+        "challenge": "What do you store in the map, and when do you look up the complement relative to inserting the current value?",
+        "confidence": 0.4
+      }
+    },
+    {
+      "id": "novel-paraphrase",
+      "inputText": "Walk left to right while keeping a dictionary from value to index. For the current index, if the dictionary already holds target minus the current value at a different index, return true; otherwise record this index and continue. Linear time.",
+      "priorTurns": [],
+      "expectedRoute": "novel",
+      "expectedOutcome": "optimal",
+      "rationale": "Correct novel paraphrase of the hash-map approach that avoids two-pointer wording and still passes all evidence gates at O(n).",
+      "evaluatorFixture": {
+        "messageKind": "approach",
+        "route": "novel",
+        "canonicalInsights": [],
+        "approach": {
+          "steps": [
+            "Keep a dictionary from value to index while scanning left to right",
+            "Look up target - current before recording the current index"
+          ],
+          "state": ["value-to-index dictionary"],
+          "invariant": "Dictionary only contains earlier indices.",
+          "claimedComplexity": { "time": "O(n)", "space": "O(n)" },
+          "assumptions": [],
+          "evidence": [
+            {
+              "claim": "value-to-index dictionary",
+              "quote": "keeping a dictionary from value to index"
+            }
+          ],
+          "criticalGaps": []
+        },
+        "casePredictions": [
+          {
+            "caseId": "basic_match",
+            "output": true,
+            "reasoning": "Index of 2 is stored before seeing 7."
+          },
+          {
+            "caseId": "duplicate_match",
+            "output": true,
+            "reasoning": "First 3 is stored; second 3 finds it at a different index."
+          },
+          {
+            "caseId": "no_match",
+            "output": false,
+            "reasoning": "No earlier index holds a complement of 8."
+          }
+        ],
+        "recommendation": "supported",
+        "challenge": null,
+        "confidence": 0.91
+      }
+    },
+    {
+      "id": "irrelevant-off-topic",
+      "inputText": "What is the weather in Seattle today and who won the cricket match?",
+      "priorTurns": [],
+      "expectedRoute": "novel",
+      "expectedOutcome": "existing_tutor_path",
+      "rationale": "Off-topic messageKind skips evidence gates and returns to the existing tutor clarification path.",
+      "evaluatorFixture": {
+        "messageKind": "off_topic",
+        "route": "novel",
+        "canonicalInsights": [],
+        "approach": {
+          "steps": [],
+          "state": [],
+          "invariant": null,
+          "claimedComplexity": null,
+          "assumptions": [],
+          "evidence": [],
+          "criticalGaps": []
+        },
+        "casePredictions": [],
+        "recommendation": "challenge",
+        "challenge": null,
+        "confidence": 0.2
+      }
+    },
+    {
+      "id": "correction-after-challenge",
+      "inputText": "I check for the complement in the set before inserting the current value, so a single occurrence cannot pair with itself. Time is O(n).",
+      "priorTurns": [
+        {
+          "role": "USER",
+          "content": "I keep a set of seen numbers and look for complements as I go."
+        },
+        {
+          "role": "AI",
+          "content": "When do you insert the current value relative to the complement check?"
+        }
+      ],
+      "expectedRoute": "novel",
+      "expectedOutcome": "optimal",
+      "rationale": "After one challenge the corrected explanation clears gaps with matching predictions; a second challenge must not be issued.",
+      "evaluatorFixture": {
+        "messageKind": "approach",
+        "route": "novel",
+        "canonicalInsights": [],
+        "approach": {
+          "steps": [
+            "Look up complement in the seen set",
+            "Insert the current value only after the lookup"
+          ],
+          "state": ["seen set"],
+          "invariant": "Current value is absent from the set during the lookup.",
+          "claimedComplexity": { "time": "O(n)", "space": "O(n)" },
+          "assumptions": [],
+          "evidence": [
+            {
+              "claim": "check before insert",
+              "quote": "check for the complement in the set before inserting"
+            }
+          ],
+          "criticalGaps": []
+        },
+        "casePredictions": [
+          {
+            "caseId": "basic_match",
+            "output": true,
+            "reasoning": "Complement of 7 is found before inserting 7."
+          },
+          {
+            "caseId": "duplicate_match",
+            "output": true,
+            "reasoning": "First 3 is already inserted when the second is checked."
+          },
+          {
+            "caseId": "no_match",
+            "output": false,
+            "reasoning": "No stored complement reaches 8."
+          }
+        ],
+        "recommendation": "supported",
+        "challenge": null,
+        "confidence": 0.93
+      }
+    }
+  ]
+}

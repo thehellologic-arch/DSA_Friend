@@ -32,3 +32,14 @@ The public URL comes from [Render](https://render.com), which deploys from this 
 3. Render prints a URL like `https://dsa-friend.onrender.com`.
 
 The free instance sleeps after idle time, so the first load after a pause can take ~30–60 seconds. Progress is in-memory on that plan unless you later attach a `DATABASE_URL` (Neon or Render Postgres).
+
+## Novel approach evaluation (shadow review)
+
+Run the app with the novel evaluator in shadow mode, then exercise the golden corpus via the unit suite:
+
+```bash
+NOVEL_EVALUATION_MODE=shadow pnpm dev
+pnpm test
+```
+
+Release gate: before enabling `NOVEL_EVALUATION_MODE=on`, review false acceptances, false rejections, abstentions, average tokens, p95 latency, and challenge rate against the expert-reviewed Two Sum corpus in `evaluation/two-sum.json`.

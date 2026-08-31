@@ -3,6 +3,17 @@ import { z } from "zod";
 export const InsightStatusSchema = z.enum(["yes", "partial", "no"]);
 export type InsightStatus = z.infer<typeof InsightStatusSchema>;
 
+export const ValidationConfigSchema = z.object({
+  oracle: z.string(),
+  cases: z.array(
+    z.object({
+      id: z.string(),
+      input: z.unknown(),
+      tags: z.array(z.string()).default([]),
+    }),
+  ),
+});
+
 export const RubricSchema = z.object({
   problem_id: z.string(),
   rubric_version: z.number(),
@@ -59,6 +70,7 @@ export const RubricSchema = z.object({
     hint_penalty_per_reveal: z.number(),
     self_correction_bonus: z.number(),
   }),
+  validation: ValidationConfigSchema.optional(),
 });
 
 export type Rubric = z.infer<typeof RubricSchema>;
@@ -71,6 +83,42 @@ export const MessageKindSchema = z.enum([
   "pushback",
 ]);
 export type MessageKind = z.infer<typeof MessageKindSchema>;
+
+export const ApproachModelSchema = z.object({
+  steps: z.array(z.string()),
+  state: z.array(z.string()),
+  invariant: z.string().nullable(),
+  claimedComplexity: z
+    .object({ time: z.string().nullable(), space: z.string().nullable() })
+    .nullable(),
+  assumptions: z.array(z.string()),
+  evidence: z.array(z.object({ claim: z.string(), quote: z.string() })),
+  criticalGaps: z.array(z.string()),
+});
+
+export const ApproachEvaluationSchema = z.object({
+  messageKind: MessageKindSchema,
+  route: z.enum(["known_canonical", "novel", "underspecified"]),
+  canonicalInsights: z.array(
+    z.object({
+      id: z.string(),
+      status: InsightStatusSchema,
+      evidence: z.string().nullable(),
+    }),
+  ),
+  approach: ApproachModelSchema,
+  casePredictions: z.array(
+    z.object({ caseId: z.string(), output: z.unknown(), reasoning: z.string() }),
+  ),
+  recommendation: z.enum(["supported", "refuted", "challenge"]),
+  challenge: z.string().nullable(),
+  confidence: z.number().min(0).max(1),
+});
+
+export type ValidationOutcome =
+  | { status: "optimal" | "acceptable"; evidence: string[] }
+  | { status: "incorrect"; counterexample: string }
+  | { status: "plausible_unverified"; reason: string };
 
 export const ClassifyResultSchema = z.object({
   insights: z.array(

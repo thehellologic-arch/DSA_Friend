@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  ApproachModelSchema,
   computeScore,
   initInsightResults,
   mergeInsightResults,
@@ -9,6 +10,7 @@ import {
   scanWrongApproaches,
   scanAcceptableAlternatives,
   scanTutorIntent,
+  ValidationConfigSchema,
   type ClassifyResult,
   type Rubric,
   type SessionContext,
@@ -516,5 +518,50 @@ describe("ratingToLevel", () => {
     expect(ratingToLevel(1250)).toBe(3);
     expect(ratingToLevel(1450)).toBe(4);
     expect(ratingToLevel(1800)).toBe(5);
+  });
+});
+
+describe("open-world evaluation schemas", () => {
+  it("parses an approach model with steps, state, and evidence", () => {
+    const approach = ApproachModelSchema.parse({
+      steps: ["sort ascending", "move two pointers based on the sum"],
+      state: ["left index", "right index"],
+      invariant: "No discarded outside pair can reach the target",
+      claimedComplexity: { time: "O(n log n)", space: "O(1)" },
+      assumptions: ["sorting a copy is allowed"],
+      evidence: [
+        { claim: "sort ascending", quote: "I will sort the array" },
+      ],
+      criticalGaps: [],
+    });
+
+    expect(approach.steps).toHaveLength(2);
+  });
+
+  it("accepts structured validation cases and rejects invalid ones", () => {
+    const config = ValidationConfigSchema.parse({
+      oracle: "two-sum",
+      cases: [
+        { id: "basic", input: { nums: [2, 7, 11, 15], target: 9 }, tags: ["smoke"] },
+        { id: "empty", input: { nums: [], target: 0 } },
+      ],
+    });
+
+    expect(config.cases).toHaveLength(2);
+    expect(config.cases[1]!.tags).toEqual([]);
+
+    expect(() =>
+      ValidationConfigSchema.parse({
+        oracle: "two-sum",
+        cases: [{ input: { nums: [1, 2] } }],
+      }),
+    ).toThrow();
+
+    expect(() =>
+      ValidationConfigSchema.parse({
+        oracle: "two-sum",
+        cases: [{}],
+      }),
+    ).toThrow();
   });
 });

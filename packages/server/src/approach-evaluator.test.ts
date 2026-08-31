@@ -67,10 +67,6 @@ function baseRequest(
     relevantQuotes: ["I keep a set of numbers I have already seen"],
     latestUserMessage:
       "I keep a set of numbers I have already seen and check complements.",
-    history: [
-      { role: "USER", content: "What's the weather in Seattle today?" },
-      { role: "AI", content: "Hello! Ready to practice Two Sum?" },
-    ],
     ...overrides,
   };
 }
@@ -174,16 +170,32 @@ describe("evaluateApproach", () => {
     const complete = vi.fn<ApproachCompletionFn>().mockResolvedValue({
       content: '{"route":"not-a-real-route"}',
       usage: {
-        promptTokens: 1,
-        completionTokens: 1,
-        totalTokens: 2,
+        promptTokens: 11,
+        completionTokens: 7,
+        totalTokens: 18,
       },
     });
 
-    await expect(evaluateApproach(baseRequest(), complete)).rejects.toBeInstanceOf(
-      ApproachEvaluationUnavailableError,
+    const err = await evaluateApproach(baseRequest(), complete).catch(
+      (e: unknown) => e,
     );
+    expect(err).toBeInstanceOf(ApproachEvaluationUnavailableError);
     expect(complete).toHaveBeenCalledTimes(2);
+    expect((err as ApproachEvaluationUnavailableError).usage).toEqual({
+      promptTokens: 11,
+      completionTokens: 7,
+      totalTokens: 18,
+    });
+  });
+
+  it("does not retry network errors and rethrows them immediately", async () => {
+    const networkError = new Error("fetch failed: ECONNRESET");
+    const complete = vi.fn<ApproachCompletionFn>().mockRejectedValue(networkError);
+
+    await expect(evaluateApproach(baseRequest(), complete)).rejects.toBe(
+      networkError,
+    );
+    expect(complete).toHaveBeenCalledTimes(1);
   });
 
   it("excludes unrelated transcript history from the completion payload", async () => {

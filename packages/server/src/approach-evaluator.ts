@@ -3,6 +3,7 @@ import {
   type ApproachEvaluation,
   type ApproachModel,
 } from "@reason/core";
+import { ZodError } from "zod";
 import { APPROACH_EVALUATION_SYSTEM_PROMPT } from "./approach-evaluation-prompt.js";
 
 export interface LlmUsage {
@@ -19,7 +20,6 @@ export interface ApproachEvaluationRequest {
   challengeAnswer: string | null;
   relevantQuotes: string[];
   latestUserMessage: string;
-  history: { role: string; content: string }[];
 }
 
 export interface ApproachCompletionResult {
@@ -33,9 +33,15 @@ export type ApproachCompletionFn = (
 ) => Promise<ApproachCompletionResult>;
 
 export class ApproachEvaluationUnavailableError extends Error {
-  constructor(message = "Approach evaluation unavailable") {
+  readonly usage: LlmUsage | null;
+
+  constructor(
+    message = "Approach evaluation unavailable",
+    usage: LlmUsage | null = null,
+  ) {
     super(message);
     this.name = "ApproachEvaluationUnavailableError";
+    this.usage = usage;
   }
 }
 
@@ -48,6 +54,18 @@ function extractJson(text: string): unknown {
     if (!match) throw new Error("No JSON object found in LLM response");
     return JSON.parse(match[0]);
   }
+}
+
+function isRetryableParseError(err: unknown): boolean {
+  if (err instanceof ZodError) return true;
+  if (err instanceof SyntaxError) return true;
+  if (
+    err instanceof Error &&
+    err.message.includes("No JSON object found")
+  ) {
+    return true;
+  }
+  return false;
 }
 
 function buildUserPayload(input: ApproachEvaluationRequest) {
@@ -96,21 +114,32 @@ export async function evaluateApproach(
 ): Promise<{ evaluation: ApproachEvaluation; usage: LlmUsage }> {
   const userContent = JSON.stringify(buildUserPayload(input));
   let lastError: Error | null = null;
+  let lastUsage: LlmUsage | null = null;
 
   for (let attempt = 0; attempt < 2; attempt++) {
+    let usage: LlmUsage | null = null;
     try {
-      const { content, usage } = await complete(
+      const result = await complete(
         APPROACH_EVALUATION_SYSTEM_PROMPT,
         userContent,
       );
-      const evaluation = ApproachEvaluationSchema.parse(extractJson(content));
+      usage = result.usage;
+      lastUsage = usage;
+      const evaluation = ApproachEvaluationSchema.parse(
+        extractJson(result.content),
+      );
       return { evaluation, usage };
     } catch (err) {
+      if (!isRetryableParseError(err)) {
+        throw err;
+      }
       lastError = err instanceof Error ? err : new Error(String(err));
+      if (usage) lastUsage = usage;
     }
   }
 
   throw new ApproachEvaluationUnavailableError(
     lastError?.message ?? "Approach evaluation unavailable",
+    lastUsage,
   );
 }

@@ -62,7 +62,7 @@ export interface TurnResponse {
 }
 
 function actionMeta(action: TurnAction): {
-  actionKind?: "follow_up" | "hint" | "counterexample";
+  actionKind?: "follow_up" | "hint" | "counterexample" | "novel_challenge";
   insightId?: string;
 } {
   switch (action.kind) {
@@ -72,6 +72,8 @@ function actionMeta(action: TurnAction): {
       return { actionKind: "hint", insightId: action.insightId };
     case "counterexample":
       return { actionKind: "counterexample", insightId: action.insightId };
+    case "novel_challenge":
+      return { actionKind: "novel_challenge" };
     default:
       return {};
   }
@@ -176,7 +178,6 @@ function buildEvaluationRequest(
     challengeAnswer: opts.challengeAnswer,
     relevantQuotes: [message],
     latestUserMessage: message,
-    history: getTranscript(session).slice(0, -1),
   };
 }
 
@@ -198,7 +199,9 @@ export class JudgingService {
     this.logEvaluation =
       options.logEvaluation ??
       ((event) => {
-        logNovelApproachEvaluation(event);
+        logNovelApproachEvaluation(event, (payload) => {
+          console.info(payload);
+        });
       });
   }
 
@@ -492,12 +495,14 @@ export class JudgingService {
       return evaluation;
     } catch (err) {
       const latencyMs = Date.now() - started;
+      const failedUsage =
+        err instanceof ApproachEvaluationUnavailableError ? err.usage : null;
       this.logEvaluation({
         event: "novel_approach_evaluation",
         route: null,
         model: this.model,
-        promptTokens: null,
-        completionTokens: null,
+        promptTokens: failedUsage?.promptTokens ?? null,
+        completionTokens: failedUsage?.completionTokens ?? null,
         latencyMs,
         cacheHit: false,
         challengeUsed: opts.isChallengeAnswer,
@@ -617,11 +622,8 @@ export class JudgingService {
       };
     }
 
-    // gates passed (acceptable/optimal evidence)
-    const label =
-      outcome.status === "optimal"
-        ? "optimal"
-        : mapSupportedLabel(evaluation, session.rubric);
+    // gates passed (acceptable evidence); label via claimed complexity
+    const label = mapSupportedLabel(evaluation, session.rubric);
     return {
       classification,
       action: {

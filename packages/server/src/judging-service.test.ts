@@ -434,6 +434,10 @@ describe("JudgingService novel routing", () => {
       kind: "novel_challenge",
       text: challengeText,
     });
+    const aiTurn = session.turns.find(
+      (turn) => turn.role === "AI" && turn.content === challengeText,
+    );
+    expect(aiTurn?.actionKind).toBe("novel_challenge");
     expect(session.context.novelChallengeUsed).toBe(true);
     expect(session.context.pendingNovelChallenge).toBe(challengeText);
     expect(session.context.approachModel).toEqual({

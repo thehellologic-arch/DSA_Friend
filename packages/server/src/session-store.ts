@@ -15,7 +15,7 @@ export interface StoredTurn {
   content: string;
   classifierOutput?: ClassifyResult;
   idempotencyKey?: string;
-  actionKind?: "follow_up" | "hint" | "counterexample";
+  actionKind?: "follow_up" | "hint" | "counterexample" | "novel_challenge";
   insightId?: string;
 }
 

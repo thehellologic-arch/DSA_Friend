@@ -43,3 +43,5 @@ pnpm test
 ```
 
 Release gate: before enabling `NOVEL_EVALUATION_MODE=on`, review false acceptances, false rejections, abstentions, average tokens, p95 latency, and challenge rate against the expert-reviewed Two Sum corpus in `evaluation/two-sum.json`.
+
+Shadow mode cost: unmatched validation-enabled turns run the novel evaluator **and** the classifier, so per-turn LLM cost is additive versus `NOVEL_EVALUATION_MODE=off` (evaluator only in `on`; classifier only in `off` for those turns).

@@ -13,7 +13,7 @@ import {
 export interface AnnotatedTurn {
   role: "USER" | "AI";
   content: string;
-  actionKind?: "follow_up" | "hint" | "counterexample";
+  actionKind?: "follow_up" | "hint" | "counterexample" | "novel_challenge";
   insightId?: string;
 }
 

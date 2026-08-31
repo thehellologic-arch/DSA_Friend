@@ -94,12 +94,15 @@ const llmModel = OPENROUTER_API_KEY
 const progressRepo = await createProgressRepository();
 const progress = new ProgressService(progressRepo, () => listProblems());
 const novelEvaluationMode = resolveNovelEvaluationMode();
+
+const app = Fastify({ logger: true, trustProxy: true });
 const judging = new JudgingService(store, llm, progress, {
   mode: novelEvaluationMode,
   model: llmModel,
+  logEvaluation: (event) => {
+    app.log.info(event);
+  },
 });
-
-const app = Fastify({ logger: true, trustProxy: true });
 await app.register(cors, { origin: true, credentials: true });
 await app.register(cookie);
 

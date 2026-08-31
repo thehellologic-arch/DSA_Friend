@@ -37,6 +37,11 @@ export interface SessionStart {
   topic?: string;
   pattern: string;
   difficulty: number;
+  sampleExample: {
+    input: string;
+    output: string;
+    explanation: string;
+  };
   state: string;
 }
 

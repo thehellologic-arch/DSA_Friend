@@ -295,6 +295,24 @@ export default function PracticeScreen({
             {session.coreAsk}
           </p>
 
+          <section className="sample-example" aria-labelledby="sample-example-title">
+            <p id="sample-example-title" className="sample-example-title">
+              EXAMPLE
+            </p>
+            <p className="sample-example-row">
+              <span>Input</span>
+              <code>{session.sampleExample.input}</code>
+            </p>
+            <p className="sample-example-row">
+              <span>Output</span>
+              <code>{session.sampleExample.output}</code>
+            </p>
+            <p className="sample-example-explanation">
+              <span>Explanation</span>
+              {session.sampleExample.explanation}
+            </p>
+          </section>
+
           <div className="chat">
             <AttemptHistory attempts={archivedAttempts} />
 

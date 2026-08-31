@@ -78,6 +78,54 @@ body {
   line-height: 1.6;
 }
 
+.sample-example {
+  margin: -0.5rem 0 1rem;
+  padding: 0.85rem;
+  border: 1px solid #303044;
+  border-radius: 8px;
+  background: #161620;
+  color: #c9c9d3;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.sample-example-title {
+  margin: 0 0 0.55rem;
+  color: #9292a4;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.sample-example-row {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  gap: 0.4rem;
+  margin: 0.3rem 0;
+}
+
+.sample-example-row span,
+.sample-example-explanation span {
+  color: #9292a4;
+  font-weight: 600;
+}
+
+.sample-example-row code {
+  color: #ededf5;
+  font-family: inherit;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.sample-example-explanation {
+  margin: 0.55rem 0 0;
+}
+
+.sample-example-explanation span {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
 .btn {
   background: #5b5bf0;
   color: white;

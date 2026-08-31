@@ -19,12 +19,12 @@ export const RubricSchema = z.object({
     examples: z
       .array(
         z.object({
-          input: z.string(),
-          output: z.string(),
-          explanation: z.string(),
+          input: z.string().min(1),
+          output: z.string().min(1),
+          explanation: z.string().min(1),
         }),
       )
-      .optional(),
+      .min(1),
   }),
   acceptable_alternatives: z
     .array(

@@ -195,6 +195,7 @@ await app.register(async (api) => {
       topic: summary?.topic,
       pattern: rubric.pattern,
       difficulty: rubric.difficulty,
+      sampleExample: rubric.optimal.examples[0],
       state: session.context.state,
     };
   });

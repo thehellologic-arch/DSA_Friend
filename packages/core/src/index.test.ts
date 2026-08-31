@@ -4,6 +4,7 @@ import {
   initInsightResults,
   mergeInsightResults,
   nextTurnAction,
+  parseRubric,
   ratingToLevel,
   scanWrongApproaches,
   scanAcceptableAlternatives,
@@ -118,6 +119,37 @@ function classify(
     ...partial,
   };
 }
+
+describe("rubric examples", () => {
+  it("requires at least one example", () => {
+    const { examples: _examples, ...optimalWithoutExamples } = rubric.optimal;
+
+    expect(() =>
+      parseRubric({
+        ...rubric,
+        optimal: optimalWithoutExamples,
+      }),
+    ).toThrow();
+  });
+
+  it("requires non-empty example fields", () => {
+    expect(() =>
+      parseRubric({
+        ...rubric,
+        optimal: {
+          ...rubric.optimal,
+          examples: [
+            {
+              input: "",
+              output: "3",
+              explanation: "Select three meetings.",
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+});
 
 describe("layer1 keyword gate", () => {
   it("detects sort by start wrong approach", () => {

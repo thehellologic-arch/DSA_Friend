@@ -6,11 +6,16 @@ export type InsightStatus = z.infer<typeof InsightStatusSchema>;
 export const ValidationConfigSchema = z.object({
   oracle: z.string(),
   cases: z.array(
-    z.object({
-      id: z.string(),
-      input: z.unknown(),
-      tags: z.array(z.string()).default([]),
-    }),
+    z
+      .object({
+        id: z.string(),
+        input: z.unknown(),
+        tags: z.array(z.string()).default([]),
+      })
+      .refine((caseData) => Object.hasOwn(caseData, "input"), {
+        path: ["input"],
+        message: "Required",
+      }),
   ),
 });
 

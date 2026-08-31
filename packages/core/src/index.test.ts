@@ -553,6 +553,13 @@ describe("open-world evaluation schemas", () => {
     expect(() =>
       ValidationConfigSchema.parse({
         oracle: "two-sum",
+        cases: [{ id: "basic", tags: [] }],
+      }),
+    ).toThrow();
+
+    expect(() =>
+      ValidationConfigSchema.parse({
+        oracle: "two-sum",
         cases: [{ input: { nums: [1, 2] } }],
       }),
     ).toThrow();

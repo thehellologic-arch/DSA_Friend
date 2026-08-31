@@ -1,0 +1,68 @@
+problem_id: word-search-dfs
+rubric_version: 1
+pattern: backtracking
+difficulty: 1500
+core_ask: "Given a board of letters and a word, return whether the word exists as a path of adjacent (4-dir) cells, each cell used at most once."
+
+optimal:
+  approach: "DFS/backtracking from every cell that matches word[0]. At index k, try 4 neighbors matching word[k], marking the cell visited (e.g. temporarily alter the board) and unmarking on return."
+  complexity: { time: "O(m n * 4^L)", space: "O(L)" }
+  key_insight: "The search is a path, not a bag of letters — order and adjacency matter, so you backtrack and never reuse a cell in the current path."
+  examples:
+    - input: "board = [['A','B','C','E'],['S','F','C','S'],['A','D','E','E']], word = 'ABCCED'"
+      output: "true"
+      explanation: "A-B-C-C-E-D snakes through the grid."
+    - input: "same board, word = 'SEE'"
+      output: "true"
+      explanation: "S-E-E along the bottom-right."
+    - input: "same board, word = 'ABCB'"
+      output: "false"
+      explanation: "Would need to reuse B."
+
+acceptable_alternatives:
+  - approach: "Same DFS with an explicit visited matrix instead of mutating the board."
+    note: "Equivalent; mutating is O(1) extra besides the stack."
+
+common_wrong_approaches:
+  - id: letter_counts
+    match_signals: ["count letters on the board", "multiset contains"]
+    why_wrong: "Having the letters is not a connected unused path."
+    counterexample: "Word ABCB on the sample board"
+  - id: reuse_cell
+    match_signals: ["don't mark visited", "can visit same cell twice"]
+    why_wrong: "The problem forbids reusing a cell."
+    counterexample: "A single 'A' cell cannot match 'AA'"
+
+required_insights:
+  - id: start_every_cell
+    desc: "Tries a search from each board cell as a potential start"
+    weight: 1
+    hints:
+      - "Where can the word begin?"
+      - "Any cell matching the first letter."
+  - id: backtrack_visit
+    desc: "Marks a cell used, recurses to neighbors, then unmarks"
+    weight: 3
+    hints:
+      - "How do you prevent using a cell twice in this path but allow it in another path?"
+      - "Mark, DFS, unmark (backtracking)."
+    on_fail_suggestion: "This is path DFS, not anagram counting. Backtrack with a visited mark on the current path."
+  - id: four_adj
+    desc: "Moves only to orthogonal neighbors matching the next character"
+    weight: 1
+    hints:
+      - "Diagonals?"
+      - "No — 4-direction and next letter must match."
+  - id: complexity
+    desc: "States exponential in word length times board size"
+    weight: 1
+    hints:
+      - "Branching factor?"
+      - "Up to 4 choices per letter: O(mn 4^L)."
+
+edge_cases: ["word longer than mn", "single letter", "must not reuse", "word equals whole board"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

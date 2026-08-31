@@ -1,0 +1,62 @@
+problem_id: number-of-1-bits
+rubric_version: 1
+pattern: bit-manipulation
+difficulty: 800
+core_ask: "Return the number of 1 bits in the binary representation of an unsigned integer (Hamming weight)."
+
+optimal:
+  approach: "Repeatedly clear the lowest set bit with n = n & (n-1) and count how many times until n is 0. Alternatively, n & 1 and right shift."
+  complexity: { time: "O(k)", space: "O(1)" }
+  key_insight: "n & (n-1) turns off the lowest 1, so the loop runs once per set bit, not once per bit width."
+  examples:
+    - input: "n = 11 (0b1011)"
+      output: "3"
+      explanation: "Three set bits; three n&(n-1) steps: 1011 → 1010 → 1000 → 0."
+    - input: "n = 128 (0b10000000)"
+      output: "1"
+      explanation: "A single high bit is cleared in one step."
+    - input: "n = 0"
+      output: "0"
+      explanation: "No set bits, loop never runs."
+
+acceptable_alternatives:
+  - approach: "Check n & 1, then n >>= 1, 32 times."
+    note: "Correct O(32); n&(n-1) is faster when few bits are set."
+
+common_wrong_approaches:
+  - id: to_string_count
+    match_signals: ["convert to binary string", "count '1' characters"]
+    why_wrong: "Works but hides the bit operation and uses extra memory."
+    counterexample: "Interview follow-up: do it with bit ops only"
+  - id: log_only
+    match_signals: ["log2", "highest bit only"]
+    why_wrong: "Finds the MSB position, not the popcount."
+    counterexample: "n = 11 — floor(log2) is 3, but there are 3 ones, coincidence; n = 8 is 1 one"
+
+required_insights:
+  - id: clear_lowest_one
+    desc: "Uses n & (n-1) (or shift-and-mask) to inspect set bits"
+    weight: 3
+    hints:
+      - "How can you remove one 1-bit at a time?"
+      - "n = n & (n-1) clears the lowest set bit."
+    on_fail_suggestion: "Don't stringify. Count by clearing lowest set bits with n & (n-1)."
+  - id: loop_until_zero
+    desc: "Counts iterations until n becomes 0"
+    weight: 2
+    hints:
+      - "When do you stop?"
+      - "Each cleared 1 increments the answer; stop at n == 0."
+  - id: complexity
+    desc: "States time proportional to set bits or word size, O(1) space"
+    weight: 1
+    hints:
+      - "Is the runtime the bit-width or the number of ones?"
+      - "O(k) for k set bits (or O(32)), O(1) space."
+
+edge_cases: ["zero", "all 32 bits set", "power of two", "odd numbers"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

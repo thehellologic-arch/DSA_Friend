@@ -1,0 +1,62 @@
+problem_id: longest-substring-no-repeat
+rubric_version: 1
+pattern: sliding-window
+difficulty: 1250
+core_ask: "Find the length of the longest substring without repeating characters."
+
+optimal:
+  approach: "Sliding window: move right across s, store last index of each char. If s[right] was seen at >= left, jump left to last+1. Track max right-left+1."
+  complexity: { time: "O(n)", space: "O(min(n, Σ))" }
+  key_insight: "The window is the longest suffix of the prefix ending at right that has unique chars; a hash map lets you skip the left pointer in jumps."
+  examples:
+    - input: "s = 'abcabcbb'"
+      output: "3"
+      explanation: "'abc' is the longest unique window."
+    - input: "s = 'bbbbb'"
+      output: "1"
+      explanation: "Left jumps on every repeat; window size stays 1."
+    - input: "s = 'pwwkew'"
+      output: "3"
+      explanation: "'wke' (or 'kew')."
+
+acceptable_alternatives:
+  - approach: "Set + shrink left until the duplicate is gone (no last-index map)."
+    note: "Still O(n); each index enters/leaves once."
+
+common_wrong_approaches:
+  - id: longest_subsequence
+    match_signals: ["subsequence not substring", "can skip characters"]
+    why_wrong: "Must be contiguous."
+    counterexample: "'pwwkew' subsequence pew is 3 but that's coincidental; skipping is illegal"
+  - id: nested_from_each
+    match_signals: ["for each start scan until duplicate"]
+    why_wrong: "O(n²) typical."
+    counterexample: "n = 5·10^4 unique then repeats"
+
+required_insights:
+  - id: window_unique
+    desc: "Maintains a window [left, right] with all unique characters"
+    weight: 3
+    hints:
+      - "When you see a duplicate, which end of the window moves?"
+      - "Advance left past the previous occurrence."
+    on_fail_suggestion: "Sliding window + last-seen index (or a set). Not a subsequence."
+  - id: last_index_map
+    desc: "Uses a map/set of characters in the window for O(1) duplicate checks"
+    weight: 2
+    hints:
+      - "How do you know a character is already inside the window?"
+      - "Map char → last index, or a set of chars in [left,right]."
+  - id: complexity
+    desc: "States O(n) time"
+    weight: 1
+    hints:
+      - "Does left ever move backward?"
+      - "No — amortized O(n)."
+
+edge_cases: ["empty", "all unique", "all same", "unicode/spaces if allowed"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

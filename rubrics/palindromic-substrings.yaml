@@ -1,0 +1,62 @@
+problem_id: palindromic-substrings
+rubric_version: 1
+pattern: two-pointers
+difficulty: 1400
+core_ask: "Count how many palindromic substrings s has. Single letters count; same substring at different positions counts separately."
+
+optimal:
+  approach: "Expand around each odd and even center, incrementing the answer for every successful expand step (each radius is a palindrome)."
+  complexity: { time: "O(n²)", space: "O(1)" }
+  key_insight: "Each time left/right still match, you have found one more palindromic substring centered there."
+  examples:
+    - input: "s = 'abc'"
+      output: "3"
+      explanation: "'a','b','c' only."
+    - input: "s = 'aaa'"
+      output: "6"
+      explanation: "Three singles, two 'aa', one 'aaa'."
+    - input: "s = 'aba'"
+      output: "4"
+      explanation: "a,b,a, and aba."
+
+acceptable_alternatives:
+  - approach: "DP boolean table; count true cells."
+    note: "O(n²) space; expand is O(1) space."
+
+common_wrong_approaches:
+  - id: unique_only
+    match_signals: ["count distinct palindrome strings", "set of palindromes"]
+    why_wrong: "Occurrences at different indices both count."
+    counterexample: "'aaa' has 6, not 3 unique strings"
+  - id: subsequences
+    match_signals: ["palindromic subsequences"]
+    why_wrong: "The problem is substrings (contiguous)."
+    counterexample: "'abca' would count 'aa' as subsequence but not substring"
+
+required_insights:
+  - id: count_all_centers
+    desc: "Counts every palindrome from odd and even expansions, including length 1"
+    weight: 3
+    hints:
+      - "How many palindromes does one center contribute?"
+      - "One per radius while s[L]==s[R]."
+    on_fail_suggestion: "Expand around 2n-1 centers and add 1 for each valid radius. Don't unique them."
+  - id: contiguous
+    desc: "Only counts substrings, not subsequences"
+    weight: 1
+    hints:
+      - "Must characters be adjacent?"
+      - "Yes."
+  - id: complexity
+    desc: "States O(n²)"
+    weight: 1
+    hints:
+      - "Same as longest palindromic substring?"
+      - "Yes, O(n²)."
+
+edge_cases: ["empty", "one char", "all identical", "no even palindromes"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

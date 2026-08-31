@@ -1,0 +1,68 @@
+problem_id: sum-of-two-integers-bit
+rubric_version: 1
+pattern: bit-manipulation
+difficulty: 1450
+core_ask: "Return the sum of two integers without using the + or - operators."
+
+optimal:
+  approach: "XOR gives the sum without carry; AND shifted left is the carry. Repeat until carry is 0. In languages with fixed-width ints, mask to 32 bits."
+  complexity: { time: "O(1)", space: "O(1)" }
+  key_insight: "Addition is XOR for bits plus a carry that is AND shifted by one; iterate until no carry remains."
+  examples:
+    - input: "a = 1, b = 2"
+      output: "3"
+      explanation: "1 XOR 2 = 3, 1 AND 2 = 0, done."
+    - input: "a = 2, b = 3"
+      output: "5"
+      explanation: "XOR=1, carry=4; next XOR=5, carry=0."
+    - input: "a = -1, b = 1"
+      output: "0"
+      explanation: "In two's complement, repeating XOR/carry across 32 bits yields 0."
+
+acceptable_alternatives:
+  - approach: "Increment a loop |b| times (sign-aware)."
+    note: "Avoids + in source but is O(|b|) and not the intended bit trick."
+
+common_wrong_approaches:
+  - id: xor_only
+    match_signals: ["just xor", "a ^ b is the sum"]
+    why_wrong: "XOR drops carries; 1+1 must become 2, not 0."
+    counterexample: "a = 1, b = 1 → XOR is 0"
+  - id: use_plus
+    match_signals: ["a + b", "built-in add"]
+    why_wrong: "The problem forbids + and -."
+    counterexample: "any input if the code uses +"
+
+required_insights:
+  - id: xor_sum_bits
+    desc: "Uses XOR as add-without-carry"
+    weight: 2
+    hints:
+      - "Which bitwise op turns 0+1 into 1 and 1+1 into 0?"
+      - "XOR is the sum bit ignoring carry."
+  - id: and_shift_carry
+    desc: "Uses (a AND b) << 1 as the carry and loops until carry is 0"
+    weight: 3
+    hints:
+      - "Where does a carry come from, and where must it be applied next?"
+      - "carry = (a & b) << 1; then add it back via the same process."
+    on_fail_suggestion: "XOR alone loses carries. Loop: sum = a^b, carry = (a&b)<<1, until carry is 0."
+  - id: negatives_twos_complement
+    desc: "Relies on two's complement / 32-bit wrap for negatives"
+    weight: 1
+    hints:
+      - "How are negative integers added in hardware?"
+      - "The same XOR/carry loop works in two's complement (mask 32 bits in Python)."
+  - id: complexity
+    desc: "States constant time relative to fixed word size"
+    weight: 1
+    hints:
+      - "How many carry iterations in a 32-bit word?"
+      - "At most 32 iterations: O(1) for fixed-width ints."
+
+edge_cases: ["zero", "both negative", "a = -b", "overflow around 2^31-1"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

@@ -1,0 +1,68 @@
+problem_id: min-rotated-sorted-array
+rubric_version: 1
+pattern: binary-search
+difficulty: 1300
+core_ask: "A distinct sorted array was rotated at an unknown pivot. Find the minimum element in O(log n) time."
+
+optimal:
+  approach: "Binary search: if nums[mid] > nums[high], the min is to the right of mid; otherwise the min is at mid or to its left. Shrink until low == high."
+  complexity: { time: "O(log n)", space: "O(1)" }
+  key_insight: "The rotation creates two sorted runs; comparing mid to the right end tells you which run still contains the minimum."
+  examples:
+    - input: "nums = [3,4,5,1,2]"
+      output: "1"
+      explanation: "mid=5 > high=2, so search [1,2]; then 1 is the min."
+    - input: "nums = [4,5,6,7,0,1,2]"
+      output: "0"
+      explanation: "Repeatedly the left half is greater than high, so the window moves onto [0,1,2]."
+    - input: "nums = [11,13,15,17]"
+      output: "11"
+      explanation: "Already sorted (rotation 0); mid is never greater than high, so low walks to index 0."
+
+acceptable_alternatives:
+  - approach: "Linear scan for the first descent, else nums[0]."
+    note: "Correct but O(n); the problem asks for log n."
+
+common_wrong_approaches:
+  - id: compare_to_left_only
+    match_signals: ["compare mid to nums[0]", "only look at left"]
+    why_wrong: "When the array is not rotated, mid > nums[0] for most of the search and you can discard the true min."
+    counterexample: "nums = [11,13,15,17] — comparing to nums[0] looks like a rotated right half"
+  - id: return_mid_unsorted
+    match_signals: ["return nums[mid] when unsorted", "mid is the pivot"]
+    why_wrong: "mid can sit in the large run, not at the join."
+    counterexample: "nums = [4,5,6,7,0,1,2] with mid at 6"
+
+required_insights:
+  - id: rotated_two_runs
+    desc: "Recognizes a rotated array as two sorted segments"
+    weight: 2
+    hints:
+      - "What does the array look like after a rotation?"
+      - "One increasing run of large values, then one increasing run that starts at the minimum."
+  - id: compare_mid_high
+    desc: "Uses nums[mid] vs nums[high] to decide which half holds the min"
+    weight: 3
+    hints:
+      - "Which endpoint is a reliable witness for 'am I in the big run?'"
+      - "If nums[mid] > nums[high], min is in (mid, high]; else it is in [low, mid]."
+    on_fail_suggestion: "Don't hunt the pivot with a linear scan. Binary search by comparing mid to the right end."
+  - id: shrink_inclusive
+    desc: "Never drops the remaining candidate (high = mid, not mid-1, when min could be mid)"
+    weight: 2
+    hints:
+      - "If nums[mid] <= nums[high], can mid itself be the answer?"
+      - "Set high = mid, not mid-1, so you don't throw away the min."
+  - id: complexity
+    desc: "States O(log n) time"
+    weight: 1
+    hints:
+      - "What runtime does the problem require?"
+      - "Halving the window each step is O(log n)."
+
+edge_cases: ["no rotation", "rotated by 1", "min at the end", "two elements"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

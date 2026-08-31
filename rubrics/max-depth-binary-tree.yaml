@@ -1,0 +1,62 @@
+problem_id: max-depth-binary-tree
+rubric_version: 1
+pattern: tree
+difficulty: 800
+core_ask: "Return the maximum depth of a binary tree (longest root-to-leaf path in number of nodes)."
+
+optimal:
+  approach: "DFS: depth(node) = 0 if null else 1 + max(depth(left), depth(right)). BFS level-count also works."
+  complexity: { time: "O(n)", space: "O(h)" }
+  key_insight: "Depth is a recursive max of child depths plus one."
+  examples:
+    - input: "root = [3,9,20,null,null,15,7]"
+      output: "3"
+      explanation: "Path 3-20-15 (or 7) has 3 nodes."
+    - input: "root = [1,null,2]"
+      output: "2"
+      explanation: "Skewed right."
+    - input: "root = []"
+      output: "0"
+      explanation: "Empty tree."
+
+acceptable_alternatives:
+  - approach: "Iterative BFS, increment depth per level."
+    note: "O(n) time, O(width) space; same answer."
+
+common_wrong_approaches:
+  - id: count_nodes
+    match_signals: ["return n", "count all nodes"]
+    why_wrong: "Depth is the height of the longest path, not size."
+    counterexample: "A balanced 7-node tree has depth 3, not 7"
+  - id: only_left
+    match_signals: ["only follow left", "always go left"]
+    why_wrong: "The longest path may be on the right."
+    counterexample: "[1,null,2]"
+
+required_insights:
+  - id: rec_max
+    desc: "Defines depth as 1 + max of child depths (0 for null)"
+    weight: 3
+    hints:
+      - "How is a node's depth related to its children?"
+      - "1 + max(left, right), 0 if null."
+    on_fail_suggestion: "Don't return the node count. Recurse: 1 + max(child depths)."
+  - id: empty_zero
+    desc: "Returns 0 for an empty tree"
+    weight: 1
+    hints:
+      - "What is the depth of null?"
+      - "0 (or some define empty as 0, single node 1)."
+  - id: complexity
+    desc: "States O(n) time"
+    weight: 1
+    hints:
+      - "Visit each node?"
+      - "Once: O(n)."
+
+edge_cases: ["empty", "single node", "skewed", "perfect binary"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

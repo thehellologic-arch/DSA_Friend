@@ -1,0 +1,62 @@
+problem_id: number-of-islands-dfs
+rubric_version: 1
+pattern: graph
+difficulty: 1200
+core_ask: "A grid of '1' (land) and '0' (water). Count islands — connected 4-directionally."
+
+optimal:
+  approach: "Scan all cells. On each unvisited '1', increment the count and DFS/BFS to sink (mark visited) the whole connected component."
+  complexity: { time: "O(m n)", space: "O(m n)" }
+  key_insight: "Each island is one connected component of land; flood-fill finds each exactly once."
+  examples:
+    - input: "grid = [['1','1','0'],['1','0','0'],['0','0','1']]"
+      output: "2"
+      explanation: "Top-left blob is one island; bottom-right 1 is another."
+    - input: "grid = [['1']]"
+      output: "1"
+      explanation: "A single land cell."
+    - input: "grid = [['0','0'],['0','0']]"
+      output: "0"
+      explanation: "No land."
+
+acceptable_alternatives:
+  - approach: "Union-Find on land cells, union 4-neighbors, count roots."
+    note: "Correct; DFS/BFS is simpler."
+
+common_wrong_approaches:
+  - id: diagonal
+    match_signals: ["8-direction", "diagonals count"]
+    why_wrong: "Only up/down/left/right connect land."
+    counterexample: "[[1,0],[0,1]] is two islands, not one"
+  - id: count_all_ones
+    match_signals: ["count number of 1s"]
+    why_wrong: "An island can contain many cells."
+    counterexample: "A 2x2 block of 1s is 1 island, not 4"
+
+required_insights:
+  - id: flood_fill
+    desc: "On each unvisited land cell, explores the whole component and marks it visited"
+    weight: 3
+    hints:
+      - "When you see a 1, what else belongs to the same island?"
+      - "DFS/BFS 4-neighbors, marking land as visited/water."
+    on_fail_suggestion: "Don't count 1s. Each flood-fill from a new 1 is one island."
+  - id: four_direction
+    desc: "Connects only orthogonal neighbors"
+    weight: 1
+    hints:
+      - "Do corners touch?"
+      - "No — only 4-direction."
+  - id: complexity
+    desc: "States O(m n) time"
+    weight: 1
+    hints:
+      - "Each cell visited how often?"
+      - "O(1) times: O(mn)."
+
+edge_cases: ["empty grid", "all water", "all land", "checkerboard"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

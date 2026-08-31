@@ -29,8 +29,10 @@ export const RubricSchema = z.object({
   acceptable_alternatives: z
     .array(
       z.object({
+        id: z.string().optional(),
         approach: z.string(),
         note: z.string(),
+        match_signals: z.array(z.string()).default([]),
       }),
     )
     .default([]),
@@ -61,6 +63,15 @@ export const RubricSchema = z.object({
 
 export type Rubric = z.infer<typeof RubricSchema>;
 
+export const MessageKindSchema = z.enum([
+  "approach",
+  "question",
+  "off_topic",
+  "sample_request",
+  "pushback",
+]);
+export type MessageKind = z.infer<typeof MessageKindSchema>;
+
 export const ClassifyResultSchema = z.object({
   insights: z.array(
     z.object({
@@ -72,6 +83,8 @@ export const ClassifyResultSchema = z.object({
   matchedWrongApproach: z.string().nullable(),
   claimsOptimal: z.boolean(),
   confidence: z.number(),
+  messageKind: MessageKindSchema.default("approach"),
+  matchedAcceptableAlternative: z.string().nullable().default(null),
 });
 
 export type ClassifyResult = z.infer<typeof ClassifyResultSchema>;
@@ -111,6 +124,7 @@ export interface SessionContext {
   probesUsedByInsight: Record<string, number>;
   selfCorrections: number;
   hadWrongApproach: boolean;
+  lastAcceptableAlternative: string | null;
 }
 
 export interface VerdictInsight {

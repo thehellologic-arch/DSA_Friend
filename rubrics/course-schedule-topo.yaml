@@ -1,0 +1,68 @@
+problem_id: course-schedule-topo
+rubric_version: 1
+pattern: graph
+difficulty: 1450
+core_ask: "There are numCourses labeled 0..n-1 and prereq pairs [a,b] meaning b must be taken before a. Return whether you can finish all courses."
+
+optimal:
+  approach: "Build an adjacency list and indegrees. Kahn BFS: start with indegree 0, peel layers, count visited. If count == n, no cycle. DFS coloring (white/gray/black) also works."
+  complexity: { time: "O(V + E)", space: "O(V + E)" }
+  key_insight: "You can finish iff the prereq graph is a DAG — equivalently, a topological order contains every course."
+  examples:
+    - input: "numCourses = 2, prerequisites = [[1,0]]"
+      output: "true"
+      explanation: "0 then 1; indegree of 1 starts at 1 and becomes 0 after taking 0."
+    - input: "numCourses = 2, prerequisites = [[1,0],[0,1]]"
+      output: "false"
+      explanation: "Cycle; Kahn never starts or never visits both."
+    - input: "numCourses = 1, prerequisites = []"
+      output: "true"
+      explanation: "A single course with no edges is a DAG."
+
+acceptable_alternatives:
+  - approach: "DFS: return false if you visit a node already on the recursion stack (gray)."
+    note: "Same O(V+E); Kahn is easier to count remaining nodes."
+
+common_wrong_approaches:
+  - id: ignore_disconnected
+    match_signals: ["only start from course 0", "assume one component"]
+    why_wrong: "Several independent courses must all be taken."
+    counterexample: "3 courses, no prereqs — must still return true"
+  - id: undirected_cycle
+    match_signals: ["treat edges as undirected"]
+    why_wrong: "A->B->A is a directed cycle; A->B<-C is not a cycle."
+    counterexample: "[[1,0],[1,2]] is acyclic"
+
+required_insights:
+  - id: detect_cycle_dag
+    desc: "Models the problem as cycle detection / topological sort on a directed graph"
+    weight: 3
+    hints:
+      - "When is a set of prereqs impossible?"
+      - "Iff there is a directed cycle."
+    on_fail_suggestion: "This is not an undirected connected-component problem. Topo-sort / detect a directed cycle."
+  - id: edge_direction
+    desc: "Adds an edge from prereq to course (or reverse) consistently with indegree"
+    weight: 2
+    hints:
+      - "If [a,b] means b before a, which way does the arrow go?"
+      - "b → a, and a's indegree increases."
+  - id: all_courses
+    desc: "Confirms every course appears in the topo order"
+    weight: 1
+    hints:
+      - "How do you know you finished all, not just one component?"
+      - "visited count == numCourses (Kahn) or every node DFS'd."
+  - id: complexity
+    desc: "States O(V+E)"
+    weight: 1
+    hints:
+      - "Graph size?"
+      - "Linear in courses plus prereqs."
+
+edge_cases: ["no prereqs", "self-loop", "multiple components", "long chain"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

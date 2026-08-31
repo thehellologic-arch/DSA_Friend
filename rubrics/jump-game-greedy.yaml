@@ -1,0 +1,62 @@
+problem_id: jump-game-greedy
+rubric_version: 1
+pattern: greedy
+difficulty: 1200
+core_ask: "Each index holds a max jump length. Starting at index 0, return whether you can reach the last index."
+
+optimal:
+  approach: "Scan left to right tracking farthest reachable index. If i exceeds farthest, fail. If farthest >= last, succeed. Equivalent: walk from the end, moving the goal left when i + nums[i] >= goal."
+  complexity: { time: "O(n)", space: "O(1)" }
+  key_insight: "You never need the exact path — only whether the reachable frontier ever covers the end."
+  examples:
+    - input: "nums = [2,3,1,1,4]"
+      output: "true"
+      explanation: "farthest goes 2, then 4, which is the end."
+    - input: "nums = [3,2,1,0,4]"
+      output: "false"
+      explanation: "You can reach index 3, but nums[3]=0 and 4 is beyond farthest."
+    - input: "nums = [0]"
+      output: "true"
+      explanation: "Already at the last (only) index."
+
+acceptable_alternatives:
+  - approach: "DP/BFS: can[i] true if some j < i can jump to i."
+    note: "Correct O(n²) typically; greedy O(n) is expected."
+
+common_wrong_approaches:
+  - id: always_max_jump
+    match_signals: ["always jump nums[i] exactly", "must use full jump"]
+    why_wrong: "You may jump 0..nums[i], not only the full length."
+    counterexample: "nums = [2,0,0] — jumping 2 from start works; insisting on landing rules that skip 0 may confuse"
+  - id: only_jump_one
+    match_signals: ["only step by 1"]
+    why_wrong: "Underuses jump length and can hit a 0 that a longer jump would skip."
+    counterexample: "nums = [2,0,1] — must jump over the 0"
+
+required_insights:
+  - id: farthest_reach
+    desc: "Maintains the farthest index reachable so far (or a sliding goal from the end)"
+    weight: 3
+    hints:
+      - "What single number tells you if index i is still in play?"
+      - "farthest = max(farthest, i + nums[i]); fail if i > farthest."
+    on_fail_suggestion: "Don't BFS every jump. Track the reachable frontier in one pass."
+  - id: stuck_on_zero
+    desc: "Detects being stuck when a 0 is beyond the current farthest"
+    weight: 2
+    hints:
+      - "When do you return false before the end?"
+      - "When the scan index passes the farthest reachable."
+  - id: complexity
+    desc: "States O(n) time and O(1) space"
+    weight: 1
+    hints:
+      - "Need a queue?"
+      - "One pass, one integer: O(n) / O(1)."
+
+edge_cases: ["single zero", "last index 0 (still success)", "zero in the middle that is skippable", "all zeros after start"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

@@ -1,0 +1,62 @@
+problem_id: climbing-stairs-dp
+rubric_version: 1
+pattern: dynamic-programming
+difficulty: 800
+core_ask: "You can climb 1 or 2 stairs at a time. How many distinct ways can you climb n stairs?"
+
+optimal:
+  approach: "Let dp[i] be ways to reach i. Then dp[i] = dp[i-1] + dp[i-2], with dp[1]=1, dp[2]=2. Keep only the last two values."
+  complexity: { time: "O(n)", space: "O(1)" }
+  key_insight: "The last step is either a 1 from i-1 or a 2 from i-2, so the counts add (Fibonacci)."
+  examples:
+    - input: "n = 2"
+      output: "2"
+      explanation: "1+1 and 2."
+    - input: "n = 3"
+      output: "3"
+      explanation: "1+1+1, 1+2, 2+1."
+    - input: "n = 1"
+      output: "1"
+      explanation: "Only a single step."
+
+acceptable_alternatives:
+  - approach: "Full dp array, or matrix exponentiation / Binet for Fibonacci."
+    note: "Array is fine O(n) space; closed form is overkill and has precision issues."
+
+common_wrong_approaches:
+  - id: n_plus_one
+    match_signals: ["n+1 ways", "n ways", "only 1s and one 2"]
+    why_wrong: "Ignores different orders of 1s and 2s."
+    counterexample: "n = 3 is 3 ways, not 2"
+  - id: recurse_no_memo
+    match_signals: ["plain recursion", "fib(n) tree"]
+    why_wrong: "Exponential time from overlapping subproblems."
+    counterexample: "n = 45"
+
+required_insights:
+  - id: last_step_split
+    desc: "Splits on whether the last move was 1 or 2 stairs"
+    weight: 3
+    hints:
+      - "What could the final step have been?"
+      - "ways(n) = ways(n-1) + ways(n-2)."
+    on_fail_suggestion: "This is Fibonacci: you arrive from n-1 or n-2."
+  - id: base_cases
+    desc: "Sets ways(1)=1 and ways(2)=2 (or ways(0)=1)"
+    weight: 1
+    hints:
+      - "What are the smallest n you can answer directly?"
+      - "1 stair: 1 way; 2 stairs: two ways."
+  - id: complexity
+    desc: "States O(n) time and O(1) space with rolling variables"
+    weight: 1
+    hints:
+      - "Do you need the whole array?"
+      - "Only two previous counts: O(n) / O(1)."
+
+edge_cases: ["n = 1", "n = 2", "large n (overflow in 32-bit)"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

@@ -1,0 +1,62 @@
+problem_id: group-anagrams-hash
+rubric_version: 1
+pattern: hashing
+difficulty: 1200
+core_ask: "Group an array of strings so that anagrams share a group. Order of groups does not matter."
+
+optimal:
+  approach: "Map a canonical key to a list: either sorted string, or a tuple of 26 counts. Append each word to its bucket; return the buckets."
+  complexity: { time: "O(n k log k)", space: "O(n k)" }
+  key_insight: "Anagrams hash to the same key if the key is a sorted copy or a count signature."
+  examples:
+    - input: "strs = ['eat','tea','tan','ate','nat','bat']"
+      output: "[['eat','tea','ate'],['tan','nat'],['bat']]"
+      explanation: "eat/tea/ate share sorted key 'aet'."
+    - input: "strs = ['']"
+      output: "[['']]"
+      explanation: "One empty string."
+    - input: "strs = ['a']"
+      output: "[['a']]"
+      explanation: "Single letter."
+
+acceptable_alternatives:
+  - approach: "Count-array key instead of sorting (O(n k) time)."
+    note: "Better when k is large; mention both."
+
+common_wrong_approaches:
+  - id: pairwise_compare
+    match_signals: ["check every pair isAnagram"]
+    why_wrong: "O(n² k)."
+    counterexample: "n = 10^4"
+  - id: prime_product_overflow
+    match_signals: ["assign primes and multiply"]
+    why_wrong: "Overflow and collisions unless you use big integers carefully."
+    counterexample: "Long strings of the same letter overflow 64-bit"
+
+required_insights:
+  - id: canonical_key
+    desc: "Uses sorted word or letter-count tuple as a hashmap key"
+    weight: 3
+    hints:
+      - "What is the same for every anagram of a word?"
+      - "Sorted characters, or a 26-count fingerprint."
+    on_fail_suggestion: "Don't pairwise-check. Group by sorted string (or count signature) in a hash map."
+  - id: buckets
+    desc: "Collects words into lists keyed by that signature"
+    weight: 2
+    hints:
+      - "Where do you put eat vs tan?"
+      - "map[key].append(word); return map.values()."
+  - id: complexity
+    desc: "States O(n k log k) for sort-key or O(n k) for counts"
+    weight: 1
+    hints:
+      - "n words of length k?"
+      - "Sorting each is k log k."
+
+edge_cases: ["empty string", "duplicates", "single group", "all unique"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

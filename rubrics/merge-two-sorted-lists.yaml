@@ -1,0 +1,68 @@
+problem_id: merge-two-sorted-lists
+rubric_version: 1
+pattern: linked-list
+difficulty: 800
+core_ask: "Merge two sorted singly linked lists into one sorted list. Return the head."
+
+optimal:
+  approach: "Dummy node + tail. While both lists remain, attach the smaller head and advance that list. Attach whatever remains. Return dummy.next."
+  complexity: { time: "O(n + m)", space: "O(1)" }
+  key_insight: "A dummy avoids a special case for choosing the first node; you always splice existing nodes, not new ones."
+  examples:
+    - input: "1->2->4 and 1->3->4"
+      output: "1->1->2->3->4->4"
+      explanation: "Always pick the current smaller head."
+    - input: "empty and 0->1"
+      output: "0->1"
+      explanation: "The leftover list is appended as-is."
+    - input: "two empty lists"
+      output: "empty"
+      explanation: "dummy.next is null."
+
+acceptable_alternatives:
+  - approach: "Recursion: merge(l1, l2) attaches the smaller and recurses."
+    note: "O(n+m) stack; iterative dummy is preferred."
+
+common_wrong_approaches:
+  - id: new_nodes
+    match_signals: ["allocate new nodes with copied values"]
+    why_wrong: "Usually you should relink existing nodes; extra allocations are waste."
+    counterexample: "Interview: merge in place"
+  - id: concat_then_sort
+    match_signals: ["concatenate then sort"]
+    why_wrong: "Throws away the sorted property; O((n+m) log(n+m))."
+    counterexample: "Long already-sorted lists"
+
+required_insights:
+  - id: dummy_tail
+    desc: "Uses a dummy head and a tail pointer to build the result"
+    weight: 2
+    hints:
+      - "How do you avoid a messy first-node special case?"
+      - "Dummy node; grow tail.next."
+  - id: pick_smaller
+    desc: "Always advances the list whose current value is smaller"
+    weight: 3
+    hints:
+      - "Who supplies the next node?"
+      - "The list with the smaller current val."
+    on_fail_suggestion: "Don't re-sort. Walk both lists like merge in merge-sort, splicing the smaller node."
+  - id: leftover
+    desc: "Appends the non-empty remainder in one assignment"
+    weight: 1
+    hints:
+      - "What if one list finishes first?"
+      - "tail.next = the remaining list."
+  - id: complexity
+    desc: "States O(n+m) time, O(1) extra space"
+    weight: 1
+    hints:
+      - "Each node touched once?"
+      - "Yes."
+
+edge_cases: ["one list empty", "all of one list smaller", "duplicate values"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

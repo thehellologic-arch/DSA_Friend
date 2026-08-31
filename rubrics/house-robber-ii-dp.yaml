@@ -1,0 +1,68 @@
+problem_id: house-robber-ii-dp
+rubric_version: 1
+pattern: dynamic-programming
+difficulty: 1400
+core_ask: "Houses stand in a circle, so the first and last are adjacent. Return the max loot without robbing adjacent houses."
+
+optimal:
+  approach: "Reduce to two linear House Robber runs: range [0..n-2] (exclude last) and [1..n-1] (exclude first). Answer is the max of those, with a special case for n=1."
+  complexity: { time: "O(n)", space: "O(1)" }
+  key_insight: "First and last cannot both be taken, so the global optimum is the better of 'rob in the prefix without last' vs 'rob in the suffix without first'."
+  examples:
+    - input: "nums = [2,3,2]"
+      output: "3"
+      explanation: "Taking both 2s is illegal because of the circle; 3 is best."
+    - input: "nums = [1,2,3,1]"
+      output: "4"
+      explanation: "1+3 from houses 0 and 2 (last excluded), or 2+1 from 1 and 3; max is 4."
+    - input: "nums = [1,2,3]"
+      output: "3"
+      explanation: "Linear rob on [1,2] is 2, on [2,3] is 3."
+
+acceptable_alternatives:
+  - approach: "DP state that tracks whether house 0 was robbed."
+    note: "Correct but easier to call the linear solver twice."
+
+common_wrong_approaches:
+  - id: ignore_circle
+    match_signals: ["same as house robber I", "don't treat first last adjacent"]
+    why_wrong: "You might rob both ends."
+    counterexample: "nums = [2,3,2] — linear DP would take 2+2=4 illegally"
+  - id: drop_only_min_end
+    match_signals: ["always drop the smaller of first and last"]
+    why_wrong: "The better range is not always 'drop the smaller endpoint'."
+    counterexample: "nums = [1,3,1,3,100] — dropping last vs first is not just comparing 1 and 100 without running DP"
+
+required_insights:
+  - id: ends_conflict
+    desc: "Recognizes first and last houses are adjacent"
+    weight: 2
+    hints:
+      - "What extra constraint does a circle add?"
+      - "House 0 and house n-1 cannot both be robbed."
+  - id: two_linear_ranges
+    desc: "Solves linear House Robber on [0..n-2] and [1..n-1] and takes max"
+    weight: 3
+    hints:
+      - "How do you enforce 'not both ends' without a 2D state?"
+      - "Run the linear robber twice, excluding one end each time."
+    on_fail_suggestion: "Don't reuse House Robber I as-is. Max of rob(0..n-2) and rob(1..n-1)."
+  - id: n_one
+    desc: "Handles a single house without empty-range bugs"
+    weight: 1
+    hints:
+      - "What if there is only one house?"
+      - "Return nums[0]; skipping both ends would drop it."
+  - id: complexity
+    desc: "States O(n) time"
+    weight: 1
+    hints:
+      - "Two linear passes?"
+      - "O(n) + O(n)."
+
+edge_cases: ["n = 1", "n = 2", "all equal", "large last house"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

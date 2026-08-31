@@ -1,0 +1,62 @@
+problem_id: graph-valid-tree
+rubric_version: 1
+pattern: graph
+difficulty: 1400
+core_ask: "Given n nodes labeled 0..n-1 and undirected edges, return whether they form a valid tree. (Premium)"
+
+optimal:
+  approach: "A tree is connected and acyclic, equivalently n-1 edges plus connected. Union-Find: each union of already-connected nodes is a cycle; at the end one component. Or DFS/BFS from 0, reject revisiting a non-parent, and ensure n visits."
+  complexity: { time: "O(n)", space: "O(n)" }
+  key_insight: "Undirected tree ⇔ connected + exactly n-1 edges (or connected + no cycle)."
+  examples:
+    - input: "n = 5, edges = [[0,1],[0,2],[0,3],[1,4]]"
+      output: "true"
+      explanation: "4 edges, one component, no cycle."
+    - input: "n = 5, edges = [[0,1],[1,2],[2,3],[1,3],[1,4]]"
+      output: "false"
+      explanation: "Cycle 1-2-3."
+    - input: "n = 4, edges = [[0,1],[2,3]]"
+      output: "false"
+      explanation: "Two components even though no cycle."
+
+acceptable_alternatives:
+  - approach: "Check len(edges)==n-1 then BFS connectivity."
+    note: "Short and correct; Union-Find also catches extra edges as cycles."
+
+common_wrong_approaches:
+  - id: only_n_minus_one
+    match_signals: ["only count n-1 edges", "don't check connected"]
+    why_wrong: "A cycle plus an isolated node can still have n-1 edges."
+    counterexample: "n=4, edges=[[0,1],[1,2],[2,0]] — 3 edges, not a tree"
+  - id: directed_tree
+    match_signals: ["need a root with indegree 0", "directed"]
+    why_wrong: "The graph is undirected; any node can be the root."
+    counterexample: "A star with center 3 is still a tree"
+
+required_insights:
+  - id: connected_and_acyclic
+    desc: "Requires both connectivity and no cycle (or n-1 edges + connected)"
+    weight: 3
+    hints:
+      - "What two properties define an undirected tree?"
+      - "Connected, no cycle — or equivalently connected with n-1 edges."
+    on_fail_suggestion: "n-1 edges alone isn't enough. Also verify one component (Union-Find or BFS from 0)."
+  - id: parent_not_cycle
+    desc: "When DFS/BFS, does not treat the undirected parent edge as a cycle"
+    weight: 1
+    hints:
+      - "If you came from u to v, is seeing u again a cycle?"
+      - "No — skip the parent; a cycle is a visited non-parent."
+  - id: complexity
+    desc: "States O(n) given O(n) edges"
+    weight: 1
+    hints:
+      - "If more than n-1 edges you can reject early."
+      - "Otherwise UF/BFS is linear."
+
+edge_cases: ["n = 1 no edges", "self-loop", "duplicate edge", "disconnected"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

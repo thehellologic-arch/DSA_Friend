@@ -1,0 +1,68 @@
+problem_id: add-search-word-trie
+rubric_version: 1
+pattern: trie
+difficulty: 1600
+core_ask: "Word dictionary supporting addWord and search where '.' matches any letter."
+
+optimal:
+  approach: "Trie as in Implement Trie. search is DFS: on a letter follow that child; on '.' try all children. A path succeeds if it consumes the pattern and lands on isEnd."
+  complexity: { time: "O(L) add, O(26^d * L) search worst case", space: "O(total chars)" }
+  key_insight: "'.' branches the search to every child; the rest is a normal trie walk."
+  examples:
+    - input: "add 'bad','dad','mad'; search 'pad'; search 'bad'; search '.ad'; search 'b..'"
+      output: "false, true, true, true"
+      explanation: "pad missing; '.' matches one letter in .ad and b.."
+    - input: "add 'a'; search '.'"
+      output: "true"
+      explanation: "Single-letter wildcard."
+    - input: "add 'a'; search 'a.'"
+      output: "false"
+      explanation: "Pattern longer than any word."
+
+acceptable_alternatives:
+  - approach: "Regex over a list of words."
+    note: "Correct but O(n L) per search; trie + DFS is the intended structure."
+
+common_wrong_approaches:
+  - id: dot_means_missing
+    match_signals: ["dot optional", ". matches empty"]
+    why_wrong: "'.' matches exactly one character."
+    counterexample: "add 'a'; search '..' is false"
+  - id: no_backtrack
+    match_signals: ["pick first child for dot and never try others"]
+    why_wrong: "The first child may fail while another matches."
+    counterexample: "add 'bad','bcd'; search 'b.d' must try a and c"
+
+required_insights:
+  - id: trie_store
+    desc: "Stores words in a trie with isEnd"
+    weight: 2
+    hints:
+      - "Same structure as Implement Trie?"
+      - "Yes — insert is identical."
+  - id: dfs_wildcard
+    desc: "On '.', DFS all children; on a letter, follow that edge only"
+    weight: 3
+    hints:
+      - "What happens at a dot?"
+      - "Try every child at that position."
+    on_fail_suggestion: "Trie + recursive search: '.' branches to all children; success needs isEnd at the end."
+  - id: length_exact
+    desc: "Requires the pattern length to match a stored word (dot is one char)"
+    weight: 1
+    hints:
+      - "Can a dot match zero letters?"
+      - "No."
+  - id: complexity
+    desc: "States add O(L) and search exponential in the number of dots in the worst case"
+    weight: 1
+    hints:
+      - "Worst pattern?"
+      - "All dots: branch 26 per step."
+
+edge_cases: ["all dots", "no dots", "word not present", "dot at start/end"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

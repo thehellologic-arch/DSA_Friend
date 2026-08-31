@@ -1,0 +1,62 @@
+problem_id: longest-repeating-char-replacement
+rubric_version: 1
+pattern: sliding-window
+difficulty: 1500
+core_ask: "You may replace at most k characters in a string of uppercase letters. Return the length of the longest substring containable as the same letter after those replacements."
+
+optimal:
+  approach: "Window [l,r]. Count frequencies; let maxf be the highest count in the window. While (r-l+1 - maxf) > k, shrink l. Answer is max window length. maxf need not decrease when shrinking."
+  complexity: { time: "O(n)", space: "O(1)" }
+  key_insight: "The window is valid if the letters that are not the mode number at most k — those are the replacements."
+  examples:
+    - input: "s = 'ABAB', k = 2"
+      output: "4"
+      explanation: "Replace two letters to make AAAA or BBBB."
+    - input: "s = 'AABABBA', k = 1"
+      output: "4"
+      explanation: "'AABA' → AAAA, or 'ABBB'."
+    - input: "s = 'AAAA', k = 0"
+      output: "4"
+      explanation: "Already uniform; no replacements needed."
+
+acceptable_alternatives:
+  - approach: "For each target letter A-Z, sliding window of that letter with k mismatches."
+    note: "O(26 n); the one-window maxf method is cleaner."
+
+common_wrong_approaches:
+  - id: replace_anywhere
+    match_signals: ["k replacements anywhere in s not a window"]
+    why_wrong: "The result must be a contiguous substring."
+    counterexample: "A...A with k=0 does not join distant A's"
+  - id: k_replacements_global
+    match_signals: ["replace k letters anywhere then count longest run", "not a window"]
+    why_wrong: "Replacements must lie inside one contiguous substring, not anywhere in s."
+    counterexample: "s = 'ABAA', k = 1 — you cannot join distant A's by rewriting a B outside the chosen window"
+
+required_insights:
+  - id: window_mode
+    desc: "A window is valid iff length minus count of the most frequent char <= k"
+    weight: 3
+    hints:
+      - "Which letters do you spend replacements on?"
+      - "Everything that isn't the majority character in the window."
+    on_fail_suggestion: "Sliding window: shrink while (window length - max frequency) > k."
+  - id: grow_right
+    desc: "Expands right across the string and shrinks left only when invalid"
+    weight: 2
+    hints:
+      - "Do you restart a window for every start index?"
+      - "No — two pointers, each index moves at most once."
+  - id: complexity
+    desc: "States O(n) time"
+    weight: 1
+    hints:
+      - "Alphabet size 26?"
+      - "O(n) with a 26-count array."
+
+edge_cases: ["k = 0", "k >= n", "all unique letters", "already one letter"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

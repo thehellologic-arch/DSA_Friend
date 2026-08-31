@@ -1,0 +1,62 @@
+problem_id: search-rotated-sorted-array
+rubric_version: 1
+pattern: binary-search
+difficulty: 1450
+core_ask: "Search for target in a distinct array that was sorted then rotated. Return its index or -1 in O(log n)."
+
+optimal:
+  approach: "Binary search: identify which half of [low, high] is sorted. If target lies inside that sorted half, search there; otherwise search the other half."
+  complexity: { time: "O(log n)", space: "O(1)" }
+  key_insight: "At least one side of mid is always sorted, so you can still discard half the range each step."
+  examples:
+    - input: "nums = [4,5,6,7,0,1,2], target = 0"
+      output: "4"
+      explanation: "Left of mid=7 is sorted [4..7]; 0 is not there, so search the right and land on 0."
+    - input: "nums = [4,5,6,7,0,1,2], target = 3"
+      output: "-1"
+      explanation: "Each step the sorted half does not contain 3, and the window empties."
+    - input: "nums = [1], target = 0"
+      output: "-1"
+      explanation: "Single miss; low/high collapse without a hit."
+
+acceptable_alternatives:
+  - approach: "Find the rotation index with binary search, then binary search the correct sorted piece."
+    note: "Correct two-phase log n; one-pass 'which half is sorted' is the same complexity and simpler."
+
+common_wrong_approaches:
+  - id: vanilla_binary
+    match_signals: ["normal binary search", "ignore rotation", "just mid vs target"]
+    why_wrong: "Standard binary search assumes a fully sorted range."
+    counterexample: "nums = [4,5,6,7,0,1,2], target = 0 — mid comparisons wander"
+  - id: linear_scan
+    match_signals: ["scan from left", "for loop indexOf"]
+    why_wrong: "O(n) misses the log n requirement."
+    counterexample: "n = 5000 in an interview follow-up that forbids linear"
+
+required_insights:
+  - id: one_half_sorted
+    desc: "Determines whether the left half [low, mid] is sorted"
+    weight: 3
+    hints:
+      - "In a rotated array, what is always true about mid?"
+      - "If nums[low] <= nums[mid], the left side is a normal sorted run."
+    on_fail_suggestion: "Vanilla binary search fails after rotation. First ask which side of mid is sorted, then see if target belongs there."
+  - id: target_in_sorted
+    desc: "Searches the sorted half only when target is inside its value range"
+    weight: 3
+    hints:
+      - "Once you know a sorted half, how do you know whether to keep it?"
+      - "If target is between the sorted half's ends, shrink to that half; else take the other."
+  - id: complexity
+    desc: "States O(log n) time and O(1) space"
+    weight: 1
+    hints:
+      - "How much of the array is discarded each step?"
+      - "Half each time: O(log n) / O(1)."
+
+edge_cases: ["not rotated", "target is pivot", "target missing", "single element"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

@@ -1,0 +1,63 @@
+problem_id: minimum-window-substring
+rubric_version: 1
+pattern: sliding-window
+difficulty: 1800
+core_ask: "Find the shortest substring of s that covers every character in t (including duplicates). Return empty if impossible."
+
+optimal:
+  approach: "Need-counts for t. Expand right, decrementing need and a 'missing' counter. When missing==0, shrink left while the window stays valid, recording the best, then release s[left] and repeat."
+  complexity: { time: "O(|s| + |t|)", space: "O(Σ)" }
+  key_insight: "A window is covering iff every required count is met; you can grow until valid then shrink to the tightest valid window ending at right."
+  examples:
+    - input: "s = 'ADOBECODEBANC', t = 'ABC'"
+      output: "'BANC'"
+      explanation: "Windows ADOBEC, CODEBA, BANC; BANC is shortest length 4."
+    - input: "s = 'a', t = 'a'"
+      output: "'a'"
+      explanation: "The whole string."
+    - input: "s = 'a', t = 'aa'"
+      output: "''"
+      explanation: "Not enough a's."
+
+acceptable_alternatives:
+  - approach: "Two maps + filtered s that only keeps chars in t."
+    note: "Same algorithm; filtering helps when s is huge and t is small alphabet."
+
+common_wrong_approaches:
+  - id: subsequence
+    match_signals: ["not contiguous", "subsequence cover"]
+    why_wrong: "Must be a substring."
+    counterexample: "s=axxbxxc t=abc is not 'abc' via skipping — there is no covering substring"
+  - id: ignore_duplicates_in_t
+    match_signals: ["set of t", "each unique letter once"]
+    why_wrong: "t's frequencies must be met."
+    counterexample: "s='aba', t='aa' needs two a's; 'aba' works, 'ab' does not"
+
+required_insights:
+  - id: need_counts
+    desc: "Tracks required frequencies from t, not just a set of letters"
+    weight: 2
+    hints:
+      - "Is one 'A' enough if t has two?"
+      - "No — count occurrences in t."
+  - id: expand_shrink
+    desc: "Expands right until valid, then shrinks left to minimize, using a missing/satisfied counter"
+    weight: 3
+    hints:
+      - "When do you move left vs right?"
+      - "Grow until every required count is met, then peel leftover characters from the left while it stays covered."
+      - "Right until all needs met; left while still met; record min."
+    on_fail_suggestion: "Classic covering window: need map + missing count; grow right, shrink left, keep the shortest valid."
+  - id: complexity
+    desc: "States O(|s|) time"
+    weight: 1
+    hints:
+      - "Each index of s as left and right?"
+      - "At most twice: O(|s|)."
+
+edge_cases: ["t longer than s", "t empty (if allowed)", "multiple equal-length minima (any shortest)", "chars in t not in s"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

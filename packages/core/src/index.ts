@@ -10,6 +10,7 @@ export {
   type FollowUpExchange,
   type TurnAction,
   type InsightStatus,
+  type MessageKind,
   MAX_HINTS_PER_SESSION,
   RubricSchema,
   ClassifyResultSchema,
@@ -22,7 +23,11 @@ export { computeScore, allInsightsResolved, hasUnresolvedInsights } from "./scor
 
 export {
   scanWrongApproaches,
+  scanAcceptableAlternatives,
+  scanTutorIntent,
   synthesizeWrongApproachClassification,
+  synthesizeAcceptableClassification,
+  synthesizeIntentClassification,
 } from "./layer1.js";
 
 export {

@@ -1,0 +1,62 @@
+problem_id: longest-consecutive-sequence
+rubric_version: 1
+pattern: hashing
+difficulty: 1400
+core_ask: "Return the length of the longest consecutive elements sequence in an unsorted array. Required time is O(n)."
+
+optimal:
+  approach: "Put all numbers in a hash set. For each x that has no x-1 in the set (sequence start), walk x, x+1, ... while present, tracking the longest run."
+  complexity: { time: "O(n)", space: "O(n)" }
+  key_insight: "Each number is walked at most once if you only start runs at values that have no predecessor."
+  examples:
+    - input: "nums = [100,4,200,1,3,2]"
+      output: "4"
+      explanation: "1,2,3,4 is started at 1 because 0 is absent."
+    - input: "nums = [0,3,7,2,5,8,4,6,0,1]"
+      output: "9"
+      explanation: "0 through 8; duplicate 0 does not lengthen."
+    - input: "nums = []"
+      output: "0"
+      explanation: "No elements."
+
+acceptable_alternatives:
+  - approach: "Sort and scan runs, skipping duplicates."
+    note: "Correct but O(n log n), which violates the O(n) ask."
+
+common_wrong_approaches:
+  - id: sort
+    match_signals: ["sort the array", "then scan adjacent"]
+    why_wrong: "O(n log n) is not O(n)."
+    counterexample: "Interview constraint: strictly linear expected time"
+  - id: start_every_number
+    match_signals: ["from every num walk upward", "no start check"]
+    why_wrong: "Each sequence is rescanned from the middle, becoming O(n²)."
+    counterexample: "nums = [1,2,3,...,n]"
+
+required_insights:
+  - id: hash_set
+    desc: "Puts values in a set for O(1) membership"
+    weight: 2
+    hints:
+      - "How do you test 'is x+1 present?' quickly?"
+      - "A hash set of all nums."
+  - id: start_of_run
+    desc: "Only begins a walk at x when x-1 is missing"
+    weight: 3
+    hints:
+      - "Which numbers are the left edge of a consecutive run?"
+      - "Those with no predecessor in the set."
+    on_fail_suggestion: "Don't sort. Start a linear walk only at numbers that have no x-1."
+  - id: complexity
+    desc: "States amortized O(n) time"
+    weight: 1
+    hints:
+      - "Why isn't walking O(n²)?"
+      - "Each value is the start of inner while at most once."
+
+edge_cases: ["empty", "duplicates", "negatives", "single element", "already consecutive"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

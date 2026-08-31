@@ -1,0 +1,62 @@
+problem_id: valid-anagram-count
+rubric_version: 1
+pattern: hashing
+difficulty: 800
+core_ask: "Return whether t is an anagram of s (same characters with the same frequencies)."
+
+optimal:
+  approach: "If lengths differ, false. Count letters of s in an array[26] or hashmap; decrement with t; all counts must finish at 0."
+  complexity: { time: "O(n)", space: "O(1)" }
+  key_insight: "Anagrams are equal as multisets; a fixed alphabet makes counting O(n) and O(1) space."
+  examples:
+    - input: "s = 'anagram', t = 'nagaram'"
+      output: "true"
+      explanation: "Same six letter counts."
+    - input: "s = 'rat', t = 'car'"
+      output: "false"
+      explanation: "Counts differ on r/c/t/a."
+    - input: "s = 'ab', t = 'a'"
+      output: "false"
+      explanation: "Length mismatch short-circuits."
+
+acceptable_alternatives:
+  - approach: "Sort both strings and compare."
+    note: "Correct O(n log n)."
+
+common_wrong_approaches:
+  - id: set_equality
+    match_signals: ["same set of letters", "ignore counts"]
+    why_wrong: "Duplicates matter."
+    counterexample: "s='aab', t='abb'"
+  - id: xor
+    match_signals: ["xor all characters"]
+    why_wrong: "Different multisets can XOR to the same value."
+    counterexample: "s = 'aa', t = 'bb' — both XOR to 0 but they are not anagrams"
+
+required_insights:
+  - id: frequency
+    desc: "Compares character frequencies (or sorted strings)"
+    weight: 3
+    hints:
+      - "What must be equal besides the set of letters?"
+      - "Counts of each character."
+    on_fail_suggestion: "Count letters (or sort). A set is not enough."
+  - id: length_check
+    desc: "Rejects unequal lengths immediately"
+    weight: 1
+    hints:
+      - "Can different lengths be anagrams?"
+      - "No."
+  - id: complexity
+    desc: "States O(n) time for counting"
+    weight: 1
+    hints:
+      - "Sort vs count?"
+      - "Count is linear for a 26-letter alphabet."
+
+edge_cases: ["empty strings", "unicode if allowed", "single char", "all same letter"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

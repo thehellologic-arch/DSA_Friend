@@ -1,0 +1,68 @@
+problem_id: maximum-product-subarray
+rubric_version: 1
+pattern: kadane
+difficulty: 1500
+core_ask: "Find the contiguous subarray whose product is maximum and return that product."
+
+optimal:
+  approach: "Scan while tracking both the max and min product ending at i, because a negative can flip min into max. Zero resets the run."
+  complexity: { time: "O(n)", space: "O(1)" }
+  key_insight: "With negatives, the smallest product so far may become the largest after one more negative, so you must keep both extrema."
+  examples:
+    - input: "nums = [2,3,-2,4]"
+      output: "6"
+      explanation: "[2,3] product 6 beats [4]; the later negative makes [-2,4] = -8."
+    - input: "nums = [-2,0,-1]"
+      output: "0"
+      explanation: "Zero is better than any negative singleton here; the two negatives are split by 0."
+    - input: "nums = [-2,3,-4]"
+      output: "24"
+      explanation: "The whole array: min product -2 then -6, then (-6)*(-4)=24 after the second negative."
+
+acceptable_alternatives:
+  - approach: "Split the array on zeros; for each non-zero run, compute products from both ends and drop at most one negative."
+    note: "Correct but more casework than tracking min/max."
+
+common_wrong_approaches:
+  - id: kadane_sum_only
+    match_signals: ["only keep max", "kadane like sum", "ignore min product"]
+    why_wrong: "A negative prefix can become the optimum after another negative."
+    counterexample: "nums = [-2,3,-4] — tracking only max gives 3, not 24"
+  - id: abs_then_kadane
+    match_signals: ["absolute values", "make all positive"]
+    why_wrong: "Sign and zeros change which segment is legal; abs invents products you cannot form."
+    counterexample: "nums = [-2,-3,-4] — |product| of the whole array is 24, but no subarray multiplies to 24; the true max is 12 from [-3,-4]"
+
+required_insights:
+  - id: track_min_and_max
+    desc: "Maintains both max and min product ending at the current index"
+    weight: 3
+    hints:
+      - "Why isn't 'best sum ending here' enough when the operation is multiply?"
+      - "Keep maxEnd and minEnd; a negative swaps their roles."
+    on_fail_suggestion: "Kadane-for-sum misses sign flips. Track the min product ending here as well as the max."
+  - id: multiply_candidates
+    desc: "Updates extrema from nums[i], maxEnd*nums[i], and minEnd*nums[i]"
+    weight: 2
+    hints:
+      - "What three candidates exist for the new ending product?"
+      - "newMax = max(x, maxEnd*x, minEnd*x) and likewise for min."
+  - id: zero_reset
+    desc: "Treats 0 as breaking the product chain"
+    weight: 1
+    hints:
+      - "What does multiplying by 0 do to the running products?"
+      - "After a 0, both min and max restart at the next value (or 0 itself)."
+  - id: complexity
+    desc: "States O(n) time and O(1) space"
+    weight: 1
+    hints:
+      - "Can this be one pass?"
+      - "One pass, a handful of integers: O(n) / O(1)."
+
+edge_cases: ["single negative", "two negatives", "zeros", "odd count of negatives"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

@@ -1,0 +1,62 @@
+problem_id: insert-interval
+rubric_version: 1
+pattern: interval
+difficulty: 1400
+core_ask: "A sorted non-overlapping interval list. Insert a new interval, merging if needed, and return the sorted list."
+
+optimal:
+  approach: "Scan: push all intervals that end before the new start. Merge all that overlap the new interval into one (expand start/end). Append the rest (those that start after the new end)."
+  complexity: { time: "O(n)", space: "O(n)" }
+  key_insight: "Because input is already sorted and disjoint, one linear pass can place the merged block in the unique correct gap."
+  examples:
+    - input: "intervals = [[1,3],[6,9]], newInterval = [2,5]"
+      output: "[[1,5],[6,9]]"
+      explanation: "[1,3] overlaps [2,5] → [1,5]; [6,9] stays."
+    - input: "intervals = [[1,2],[3,5],[6,7],[8,10],[12,16]], newInterval = [4,8]"
+      output: "[[1,2],[3,10],[12,16]]"
+      explanation: "Merge [3,5],[6,7],[8,10] with [4,8] into [3,10]."
+    - input: "intervals = [], newInterval = [5,7]"
+      output: "[[5,7]]"
+      explanation: "Empty list; just insert."
+
+acceptable_alternatives:
+  - approach: "Append, sort, then merge-intervals."
+    note: "Correct O(n log n); the linear scan uses the sorted input."
+
+common_wrong_approaches:
+  - id: sort_again
+    match_signals: ["sort everything", "then merge all"]
+    why_wrong: "Unnecessary log n when the list is already sorted."
+    counterexample: "n = 10^4 already sorted — O(n) expected"
+  - id: overlap_wrong_test
+    match_signals: ["overlap if start inside only", "forget end comparison"]
+    why_wrong: "Two intervals overlap unless one is completely to the left of the other."
+    counterexample: "existing [1,10] and new [2,3] must merge"
+
+required_insights:
+  - id: three_phases
+    desc: "Emits left-non-overlapping, then one merged interval, then right-non-overlapping"
+    weight: 3
+    hints:
+      - "How do intervals split relative to the new one?"
+      - "Strictly left, overlapping (fold into new), strictly right."
+    on_fail_suggestion: "Don't re-sort. Walk left, merge while overlapping, then append the tail."
+  - id: merge_minmax
+    desc: "Merged start is min of starts; merged end is max of ends"
+    weight: 2
+    hints:
+      - "When [1,3] meets [2,5], what is the union?"
+      - "start = min(1,2), end = max(3,5)."
+  - id: complexity
+    desc: "States O(n) time"
+    weight: 1
+    hints:
+      - "Is a sort required?"
+      - "No: one pass."
+
+edge_cases: ["insert at beginning", "insert at end", "covers all", "empty intervals", "no overlap"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

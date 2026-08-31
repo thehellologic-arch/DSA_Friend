@@ -1,0 +1,68 @@
+problem_id: longest-increasing-subsequence
+rubric_version: 1
+pattern: dynamic-programming
+difficulty: 1650
+core_ask: "Return the length of the longest strictly increasing subsequence (not necessarily contiguous)."
+
+optimal:
+  approach: "Patience sorting: maintain tails[len] = smallest tail of any increasing subsequence of that length. For each num, binary-search the first tail >= num and replace it. Answer is tails size."
+  complexity: { time: "O(n log n)", space: "O(n)" }
+  key_insight: "You only need the smallest possible tail for each length; that greedy choice never blocks a longer subsequence later."
+  examples:
+    - input: "nums = [10,9,2,5,3,7,101,18]"
+      output: "4"
+      explanation: "One LIS is [2,3,7,18] (or [2,5,7,101]); tails grow to length 4."
+    - input: "nums = [0,1,0,3,2,3]"
+      output: "4"
+      explanation: "[0,1,2,3] after replacements keep the smallest tails."
+    - input: "nums = [7,7,7,7]"
+      output: "1"
+      explanation: "Strict increase forbids equals; tails stays one element."
+
+acceptable_alternatives:
+  - approach: "dp[i] = 1 + max dp[j] for j < i and nums[j] < nums[i]; answer max dp."
+    note: "Correct O(n²); mention the n log n tails method as better."
+
+common_wrong_approaches:
+  - id: longest_subarray
+    match_signals: ["contiguous", "subarray", "kadane increasing"]
+    why_wrong: "Subsequence may skip elements."
+    counterexample: "nums = [1,3,2,4] — contiguous max increase is 2, LIS is 3"
+  - id: sort_unique_length
+    match_signals: ["sort and unique", "count distinct"]
+    why_wrong: "Sorting destroys original order, so you invent sequences that were not subsequences."
+    counterexample: "nums = [3,2,1] — 3 distinct but LIS length is 1"
+
+required_insights:
+  - id: subsequence_not_subarray
+    desc: "Allows skipping elements; order follows original indices"
+    weight: 1
+    hints:
+      - "Must chosen values be adjacent?"
+      - "No — any increasing pick in index order."
+  - id: tails_or_n2_dp
+    desc: "Uses the tails binary-search method or the O(n²) ending-at-i DP"
+    weight: 3
+    hints:
+      - "How do you extend the longest chain ending with a smaller value?"
+      - "Either dp[i] from all prior j, or binary-search the smallest tail to replace."
+    on_fail_suggestion: "This is not a contiguous run. DP LIS length ending at i, or maintain smallest tails with binary search."
+  - id: strict
+    desc: "Requires strictly increasing, so equals do not extend"
+    weight: 1
+    hints:
+      - "Can equal numbers grow the sequence?"
+      - "No; search the first tail >= num (lower_bound) and replace."
+  - id: complexity
+    desc: "States O(n log n) for tails or O(n²) for classic DP"
+    weight: 1
+    hints:
+      - "What does the binary search buy you?"
+      - "n binary searches: O(n log n). Nested j < i: O(n²)."
+
+edge_cases: ["all equal", "already sorted", "strictly decreasing", "length 1"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

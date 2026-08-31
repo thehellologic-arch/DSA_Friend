@@ -1,0 +1,68 @@
+problem_id: construct-tree-preorder-inorder
+rubric_version: 1
+pattern: tree
+difficulty: 1600
+core_ask: "Build a binary tree from its preorder and inorder traversals (unique values)."
+
+optimal:
+  approach: "Preorder[0] is the root. Find it in inorder; left of it is the left subtree's inorder, right is the right. Recurse with the corresponding preorder slices. Use a hashmap of inorder index for O(1) splits; use pointers instead of copying arrays."
+  complexity: { time: "O(n)", space: "O(n)" }
+  key_insight: "Preorder gives the next root; inorder splits the remaining nodes into left vs right sets."
+  examples:
+    - input: "preorder = [3,9,20,15,7], inorder = [9,3,15,20,7]"
+      output: "[3,9,20,null,null,15,7]"
+      explanation: "3 is root; inorder left [9]; right [15,20,7] with preorder [20,15,7]."
+    - input: "preorder = [-1], inorder = [-1]"
+      output: "[-1]"
+      explanation: "Single node."
+    - input: "preorder = [1,2,3], inorder = [3,2,1]"
+      output: "skewed left 1-2-3"
+      explanation: "Inorder all on the left of each root."
+
+acceptable_alternatives:
+  - approach: "Scan inorder linearly for the root each time without a map."
+    note: "O(n²); the hashmap is the expected optimization."
+
+common_wrong_approaches:
+  - id: preorder_only
+    match_signals: ["build from preorder alone"]
+    why_wrong: "Preorder without inorder (or nulls) is not unique."
+    counterexample: "Many shapes share preorder [1,2,3]"
+  - id: wrong_slice
+    match_signals: ["split preorder in half"]
+    why_wrong: "Left subtree size equals the inorder left length, not n/2."
+    counterexample: "Left-skewed tree"
+
+required_insights:
+  - id: preorder_root
+    desc: "Takes the next preorder value as the current root"
+    weight: 2
+    hints:
+      - "Which traversal tells you the root first?"
+      - "Preorder's first unused value."
+  - id: inorder_split
+    desc: "Uses inorder position of the root to size the left and right subtrees"
+    weight: 3
+    hints:
+      - "How many nodes go left?"
+      - "Count of inorder elements before the root."
+    on_fail_suggestion: "Root = next preorder. Split inorder at that value; recurse on the matching preorder ranges. Hash inorder indexes."
+  - id: unique_index_map
+    desc: "Avoids O(n) scans by mapping value → inorder index"
+    weight: 1
+    hints:
+      - "How do you find the root in inorder quickly?"
+      - "A hashmap built once."
+  - id: complexity
+    desc: "States O(n) with the index map"
+    weight: 1
+    hints:
+      - "Each node created once?"
+      - "O(n)."
+
+edge_cases: ["single node", "left-skewed", "right-skewed", "full tree"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

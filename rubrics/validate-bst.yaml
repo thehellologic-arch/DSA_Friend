@@ -1,0 +1,62 @@
+problem_id: validate-bst
+rubric_version: 1
+pattern: bst
+difficulty: 1400
+core_ask: "Return whether a binary tree is a valid BST: every node is strictly greater than the whole left subtree and strictly less than the whole right subtree."
+
+optimal:
+  approach: "DFS with a (low, high) window: node.val must be in (low, high), then recurse left with high=node.val and right with low=node.val. Inorder strictly increasing also works."
+  complexity: { time: "O(n)", space: "O(h)" }
+  key_insight: "It's not enough that left.val < node.val < right.val; a left descendant must still be < all ancestors on the right path, so you thread min/max bounds."
+  examples:
+    - input: "root = [2,1,3]"
+      output: "true"
+      explanation: "1 < 2 < 3."
+    - input: "root = [5,1,4,null,null,3,6]"
+      output: "false"
+      explanation: "3 is in the right subtree of 5 but 3 < 5."
+    - input: "root = [1,1]"
+      output: "false"
+      explanation: "Duplicates violate a strict BST (LeetCode)."
+
+acceptable_alternatives:
+  - approach: "Inorder traversal; each value must be > previous."
+    note: "Elegant; watch the first node / sentinel."
+
+common_wrong_approaches:
+  - id: only_children
+    match_signals: ["only compare to immediate children"]
+    why_wrong: "A deep node can violate an ancestor."
+    counterexample: "[5,1,4,null,null,3,6]"
+  - id: allow_equals
+    match_signals: ["left <= node", "duplicates allowed"]
+    why_wrong: "This problem uses strict <."
+    counterexample: "[1,1]"
+
+required_insights:
+  - id: bounds_or_inorder
+    desc: "Uses ancestor min/max bounds or checks inorder is strictly increasing"
+    weight: 3
+    hints:
+      - "Why isn't left < node < right enough?"
+      - "Pass down (low, high) or verify inorder."
+    on_fail_suggestion: "Don't only check children. DFS with (min, max) bounds, or inorder strictly increasing."
+  - id: strict
+    desc: "Uses strict inequalities (no duplicate values)"
+    weight: 1
+    hints:
+      - "Are equal values OK?"
+      - "No on LeetCode Validate BST."
+  - id: complexity
+    desc: "States O(n)"
+    weight: 1
+    hints:
+      - "Visit once?"
+      - "O(n)."
+
+edge_cases: ["empty tree true", "duplicates", "INT_MIN/INT_MAX values", "right child too small"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

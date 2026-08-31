@@ -1,0 +1,62 @@
+problem_id: kth-smallest-bst
+rubric_version: 1
+pattern: bst
+difficulty: 1300
+core_ask: "Return the kth smallest value in a BST (1-indexed)."
+
+optimal:
+  approach: "Inorder traversal is sorted. Walk inorder and stop at the kth node. Iterative stack or recursive with a counter. Follow-up: subtree sizes for O(h) repeated queries."
+  complexity: { time: "O(h + k)", space: "O(h)" }
+  key_insight: "BST inorder yields increasing order, so the kth visit is the answer — no extra sort."
+  examples:
+    - input: "root = [3,1,4,null,2], k = 1"
+      output: "1"
+      explanation: "Inorder 1,2,3,4; first is 1."
+    - input: "root = [5,3,6,2,4,null,null,1], k = 3"
+      output: "3"
+      explanation: "Inorder 1,2,3,4,5,6; third is 3."
+    - input: "root = [1,null,2], k = 2"
+      output: "2"
+      explanation: "Right child is second."
+
+acceptable_alternatives:
+  - approach: "Flatten all values and sort / select."
+    note: "Correct but ignores BST order; O(n log n) or O(n)."
+
+common_wrong_approaches:
+  - id: kth_from_root
+    match_signals: ["root is median", "kth along the spine"]
+    why_wrong: "kth smallest is not a path length from root."
+    counterexample: "k=1 is the leftmost, not the root"
+  - id: preorder_k
+    match_signals: ["kth in preorder"]
+    why_wrong: "Preorder is not sorted."
+    counterexample: "[3,1,4] preorder 3,1,4 vs sorted 1,3,4"
+
+required_insights:
+  - id: inorder
+    desc: "Uses inorder (left, node, right) as sorted order"
+    weight: 3
+    hints:
+      - "Which traversal lists BST values sorted?"
+      - "Inorder."
+    on_fail_suggestion: "Inorder until you have visited k nodes; that value is the answer."
+  - id: early_stop
+    desc: "Stops after k visits instead of collecting the whole tree"
+    weight: 1
+    hints:
+      - "Do you need all n values?"
+      - "No — halt at k."
+  - id: complexity
+    desc: "States O(h+k) or O(n)"
+    weight: 1
+    hints:
+      - "Best-case leftmost walk?"
+      - "O(h+k) with a stack."
+
+edge_cases: ["k = 1 (leftmost)", "k = n (rightmost)", "skewed", "duplicates if any"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

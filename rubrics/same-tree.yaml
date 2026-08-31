@@ -1,0 +1,62 @@
+problem_id: same-tree
+rubric_version: 1
+pattern: tree
+difficulty: 800
+core_ask: "Return whether two binary trees are structurally identical and have the same node values."
+
+optimal:
+  approach: "DFS both together: if both null, true; if one null or vals differ, false; else same(lefts) and same(rights)."
+  complexity: { time: "O(n)", space: "O(h)" }
+  key_insight: "You must compare structure and values at the same positions, not just the sets of values."
+  examples:
+    - input: "p = [1,2,3], q = [1,2,3]"
+      output: "true"
+      explanation: "Same shape and values."
+    - input: "p = [1,2], q = [1,null,2]"
+      output: "false"
+      explanation: "2 is left vs right."
+    - input: "p = [1,2,1], q = [1,1,2]"
+      output: "false"
+      explanation: "Children swapped."
+
+acceptable_alternatives:
+  - approach: "Serialize both (e.g. preorder with nulls) and compare strings."
+    note: "Correct; must encode nulls or structure is lost."
+
+common_wrong_approaches:
+  - id: value_multiset
+    match_signals: ["same values in any order", "sort the nodes"]
+    why_wrong: "Different shapes can share values."
+    counterexample: "[1,2] vs [1,null,2]"
+  - id: inorder_only
+    match_signals: ["only compare inorder"]
+    why_wrong: "Different trees can share inorder without null markers."
+    counterexample: "Need nulls or two traversals"
+
+required_insights:
+  - id: lockstep
+    desc: "Walks both trees in lockstep comparing val and nullness"
+    weight: 3
+    hints:
+      - "When are two nodes a mismatch?"
+      - "One null, or values differ; else both children must match."
+    on_fail_suggestion: "Recurse on both nodes together. Matching bags of values is not enough."
+  - id: nulls
+    desc: "Treats two nulls as equal and one null as unequal"
+    weight: 1
+    hints:
+      - "Base cases?"
+      - "p is q is None → true; (p is None) != (q is None) → false."
+  - id: complexity
+    desc: "States O(n)"
+    weight: 1
+    hints:
+      - "Short-circuit on first mismatch?"
+      - "Still O(n) worst case."
+
+edge_cases: ["both empty", "one empty", "skewed vs balanced", "duplicates values"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

@@ -1,0 +1,62 @@
+problem_id: meeting-rooms-overlap
+rubric_version: 1
+pattern: interval
+difficulty: 900
+core_ask: "Given meeting time intervals, return whether a person can attend all meetings (no two overlap). (Premium)"
+
+optimal:
+  approach: "Sort by start time. Check each adjacent pair: if meetings[i].start < meetings[i-1].end, they overlap — return false. Otherwise true."
+  complexity: { time: "O(n log n)", space: "O(1)" }
+  key_insight: "After sorting by start, only consecutive meetings in that order can be the first overlap; you do not need all pairs."
+  examples:
+    - input: "intervals = [[0,30],[5,10],[15,20]]"
+      output: "false"
+      explanation: "[0,30] overlaps both later meetings."
+    - input: "intervals = [[7,10],[2,4]]"
+      output: "true"
+      explanation: "Sorted [2,4] then [7,10]; 7 >= 4."
+    - input: "intervals = [[1,5],[5,6]]"
+      output: "true"
+      explanation: "A meeting ending at 5 does not overlap one starting at 5."
+
+acceptable_alternatives:
+  - approach: "Sweep: +1 at start, -1 at end; if concurrent count exceeds 1, false."
+    note: "Correct; useful warmup for Meeting Rooms II."
+
+common_wrong_approaches:
+  - id: unsorted_adjacent
+    match_signals: ["check i and i+1 without sorting"]
+    why_wrong: "Input order is arbitrary."
+    counterexample: "[[7,10],[2,8]] looks non-adjacent in given order but overlaps after sort"
+  - id: inclusive_end
+    match_signals: ["start <= previous end is overlap", "touching is conflict"]
+    why_wrong: "Usually end == next start is allowed (back-to-back)."
+    counterexample: "[[1,5],[5,6]] should be true"
+
+required_insights:
+  - id: sort_by_start
+    desc: "Sorts meetings by start time before comparing"
+    weight: 3
+    hints:
+      - "Can you compare meetings in the given order?"
+      - "Sort by start first."
+    on_fail_suggestion: "Sort by start, then test whether any meeting starts before the previous one ends."
+  - id: adjacent_sufficient
+    desc: "Only checks consecutive meetings after sorting"
+    weight: 2
+    hints:
+      - "After sorting, could meeting 0 overlap meeting 2 without overlapping meeting 1?"
+      - "No — the earlier end already conflicts with the middle one if times nest that way; adjacent check catches it."
+  - id: complexity
+    desc: "States O(n log n)"
+    weight: 1
+    hints:
+      - "Bottleneck?"
+      - "Sort."
+
+edge_cases: ["empty", "one meeting", "back-to-back", "identical intervals"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

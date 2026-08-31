@@ -1,0 +1,69 @@
+problem_id: alien-dictionary-topo
+rubric_version: 1
+pattern: graph
+difficulty: 1800
+core_ask: "Given a list of words sorted in an unknown alien alphabet, derive a valid character order. Return any valid order, or empty string if the order is invalid. (Premium)"
+
+optimal:
+  approach: "Compare consecutive words to extract inequality edges (first differing letters: earlier word's letter → later). Also detect prefix violations (apple after app). Kahn topo-sort the letters that appear; if a cycle or leftover nodes, invalid."
+  complexity: { time: "O(C)", space: "O(1)" }
+  key_insight: "Sorted consecutive pairs are enough to recover all adjacent letter constraints; a valid alphabet is a topological order of that DAG."
+  examples:
+    - input: "words = ['wrt','wrf','er','ett','rftt']"
+      output: "'wertf'"
+      explanation: "t→f, w→e, r→t, e→r from consecutive diffs; topo yields wertf."
+    - input: "words = ['z','x']"
+      output: "'zx'"
+      explanation: "Single edge z→x."
+    - input: "words = ['z','x','z']"
+      output: "''"
+      explanation: "z before x and x before z: cycle."
+
+acceptable_alternatives:
+  - approach: "DFS topo with cycle detection on the same letter graph."
+    note: "Equivalent; unique vs any order: problem allows any valid."
+
+common_wrong_approaches:
+  - id: compare_all_pairs
+    match_signals: ["compare every pair of words"]
+    why_wrong: "Unnecessary and easy to add contradictory extra edges; consecutive is sufficient because the list is fully sorted."
+    counterexample: "A sorted list of 10^4 words"
+  - id: ignore_prefix
+    match_signals: ["skip when one word is prefix", "app after apple is fine"]
+    why_wrong: "In a dictionary, a prefix must come first; apple before app is invalid."
+    counterexample: "words = ['apple','app'] must return ''"
+
+required_insights:
+  - id: consecutive_edges
+    desc: "Derives directed letter edges from the first mismatch of consecutive words"
+    weight: 3
+    hints:
+      - "Which word pairs give you a letter inequality?"
+      - "The list is already fully sorted, so adjacent pairs are enough — look at the first mismatch."
+      - "Only consecutive words in the sorted list; first differing characters."
+    on_fail_suggestion: "Build a graph of letters from consecutive first-diff pairs, then topo-sort."
+  - id: prefix_invalid
+    desc: "Rejects when a longer word comes before its prefix"
+    weight: 2
+    hints:
+      - "Is 'apple' then 'app' a valid sorted pair?"
+      - "No — return empty string."
+  - id: topo_or_cycle
+    desc: "Returns a topo order of appearing letters, or empty on cycle / incomplete peel"
+    weight: 2
+    hints:
+      - "When is there no valid alphabet?"
+      - "Directed cycle among letters, or prefix rule broken."
+  - id: complexity
+    desc: "States linear in total characters"
+    weight: 1
+    hints:
+      - "Work is scanning words plus O(26) graph."
+      - "O(total chars)."
+
+edge_cases: ["single word", "duplicate words", "all unique letters disconnected", "prefix violation"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

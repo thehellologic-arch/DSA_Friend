@@ -10,12 +10,23 @@ const CLASSIFIER_SYSTEM_PROMPT = `You are a grading classifier, not a tutor. Giv
 
 Use the conversation history only as context. "matchedWrongApproach" must classify the latest user message, not an earlier message. If the latest message corrects or rejects a previously wrong approach, return null.
 
+Set "messageKind" from the latest user message only:
+- "approach": they describe a solution, algorithm, data structure, complexity, or tradeoff for THIS problem
+- "question": they ask what the problem is or request a restatement of the prompt
+- "sample_request": they ask for an example, sample input, current number, or test case
+- "pushback": they say the last hint/question was unrelated or did not match their approach
+- "off_topic": greetings, insults, chit-chat, or questions unrelated to this problem (news, people, other subjects)
+
+If they described an acceptable alternative (not the optimal), set "matchedAcceptableAlternative" to that alternative's id. Do not treat a correct slower method as a wrong approach.
+
 Output ONLY valid JSON matching this schema:
 {
   "insights": [{ "id": "<insight_id>", "status": "yes|partial|no", "evidence": "<quote or null>" }],
   "matchedWrongApproach": "<wrong_approach_id or null>",
+  "matchedAcceptableAlternative": "<acceptable_id or null>",
   "claimsOptimal": true|false,
-  "confidence": 0.0-1.0
+  "confidence": 0.0-1.0,
+  "messageKind": "approach|question|sample_request|pushback|off_topic"
 }`;
 
 const CLARIFICATION_SYSTEM_PROMPT = `You are a concise tutor answering follow-up questions after grading is complete. Explain only the supplied optimal solution, key insight, complexity, examples, and edge cases. Do not re-grade the user or change the verdict. Do not introduce a different solution unless it is already present in the rubric. If the question is unrelated, ask the user to keep questions focused on this problem.`;
@@ -54,6 +65,11 @@ function buildClassifyPayload(input: ClassifyRequest, rubric: Rubric) {
     })),
     history: input.history,
     latestUserMessage: input.latestUserMessage,
+    acceptableAlternatives: rubric.acceptable_alternatives.map((alt) => ({
+      id: alt.id ?? alt.approach,
+      approach: alt.approach,
+      note: alt.note,
+    })),
   };
 }
 

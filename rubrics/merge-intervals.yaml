@@ -1,0 +1,62 @@
+problem_id: merge-intervals
+rubric_version: 1
+pattern: interval
+difficulty: 1300
+core_ask: "Given intervals that may overlap, return the merged set of disjoint intervals covering the same range."
+
+optimal:
+  approach: "Sort by start. Scan, extending the current end while the next start <= current end; otherwise push the current and start a new one."
+  complexity: { time: "O(n log n)", space: "O(n)" }
+  key_insight: "After sorting by start, you only ever merge with the last interval in the answer — never with something earlier."
+  examples:
+    - input: "intervals = [[1,3],[2,6],[8,10],[15,18]]"
+      output: "[[1,6],[8,10],[15,18]]"
+      explanation: "[1,3] and [2,6] merge; the rest are disjoint."
+    - input: "intervals = [[1,4],[4,5]]"
+      output: "[[1,5]]"
+      explanation: "Touching endpoints count as overlap."
+    - input: "intervals = [[1,4],[0,4]]"
+      output: "[[0,4]]"
+      explanation: "Sort puts [0,4] first, then merge."
+
+acceptable_alternatives:
+  - approach: "Sweep line with +1/-1 at starts/ends."
+    note: "Correct; sorting starts is simpler."
+
+common_wrong_approaches:
+  - id: sort_by_end
+    match_signals: ["sort by end time"]
+    why_wrong: "A later-ending interval can start earlier and fail to merge in one pass."
+    counterexample: "[[1,10],[2,3],[4,5]] sorted by end merges poorly in a naive scan"
+  - id: adjacent_not_merge
+    match_signals: ["strict overlap only", "touching stay separate"]
+    why_wrong: "Usually [1,4] and [4,5] merge to [1,5]."
+    counterexample: "[[1,4],[4,5]]"
+
+required_insights:
+  - id: sort_by_start
+    desc: "Sorts intervals by start time first"
+    weight: 3
+    hints:
+      - "What order makes a linear merge correct?"
+      - "Sort by start."
+    on_fail_suggestion: "Sort by start, then extend the last merged interval while the next overlaps."
+  - id: extend_end
+    desc: "While next.start <= current.end, current.end = max(ends)"
+    weight: 2
+    hints:
+      - "How do you absorb an overlapping next interval?"
+      - "Grow the end; do not start a new interval yet."
+  - id: complexity
+    desc: "States O(n log n) from the sort"
+    weight: 1
+    hints:
+      - "What dominates?"
+      - "Sorting."
+
+edge_cases: ["fully nested", "touching ends", "already disjoint", "single interval"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

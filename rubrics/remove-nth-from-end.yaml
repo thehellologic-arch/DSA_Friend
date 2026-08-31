@@ -1,0 +1,62 @@
+problem_id: remove-nth-from-end
+rubric_version: 1
+pattern: linked-list
+difficulty: 1100
+core_ask: "Remove the nth node from the end of a singly linked list and return the head."
+
+optimal:
+  approach: "Dummy before head. Advance fast n+1 steps (or n from dummy), then move slow and fast together until fast is null. slow.next is the target; skip it."
+  complexity: { time: "O(L)", space: "O(1)" }
+  key_insight: "A gap of n between two pointers means when the leader hits the end, the follower sits just before the nth-from-end."
+  examples:
+    - input: "1->2->3->4->5, n = 2"
+      output: "1->2->3->5"
+      explanation: "When fast is null, slow is at 3; unlink 4."
+    - input: "1->2, n = 1"
+      output: "1"
+      explanation: "Remove the last node."
+    - input: "1, n = 1"
+      output: "empty"
+      explanation: "Dummy lets you remove the original head."
+
+acceptable_alternatives:
+  - approach: "Count length in one pass, then remove (L-n)th from the front in a second pass."
+    note: "Correct two-pass; one-pass two-pointer is nicer."
+
+common_wrong_approaches:
+  - id: nth_from_front
+    match_signals: ["remove index n from head", "skip n from start"]
+    why_wrong: "n is counted from the tail."
+    counterexample: "1->2->3->4->5, n=2 is 4, not 2"
+  - id: no_dummy_head
+    match_signals: ["special-case only if n equals length without dummy"]
+    why_wrong: "Easy to miss deleting the head when n == length."
+    counterexample: "1->2, n=2 should return 2"
+
+required_insights:
+  - id: gap_n
+    desc: "Uses two pointers n apart (plus dummy) so the trailer is before the deletion"
+    weight: 3
+    hints:
+      - "How can you find 'n from the end' in one pass?"
+      - "Lead pointer n steps ahead, then walk together."
+    on_fail_suggestion: "Don't convert to an array. Dummy + two pointers with gap n; unlink slow.next."
+  - id: dummy_for_head
+    desc: "Uses a dummy so removing the head is the same unlink"
+    weight: 2
+    hints:
+      - "What if n equals the list length?"
+      - "Dummy.next becomes the new head."
+  - id: complexity
+    desc: "States O(L) time, O(1) space"
+    weight: 1
+    hints:
+      - "One or two passes still linear?"
+      - "O(L) / O(1)."
+
+edge_cases: ["remove head", "remove tail", "single node", "n = 1"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

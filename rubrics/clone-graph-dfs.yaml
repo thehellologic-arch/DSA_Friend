@@ -1,0 +1,62 @@
+problem_id: clone-graph-dfs
+rubric_version: 1
+pattern: graph
+difficulty: 1400
+core_ask: "Clone a connected undirected graph given a node. Each node has a val and a list of neighbors. Return the clone of the given node."
+
+optimal:
+  approach: "DFS or BFS with a map from original node to clone. Create the clone when first seeing a node, then copy neighbor pointers using the map (recursing/queueing as needed)."
+  complexity: { time: "O(V + E)", space: "O(V)" }
+  key_insight: "The map both memoizes clones (so cycles don't recurse forever) and is the only way to wire edges onto the new graph."
+  examples:
+    - input: "Adjacency [[2,4],[1,3],[2,4],[1,3]] (four-node square)"
+      output: "A new square with the same neighbor structure and vals 1-4"
+      explanation: "Node 1 is cloned first; DFS clones 2 and 4, then 3; each edge is added once the neighbor clone exists."
+    - input: "Single node with empty neighbors"
+      output: "A new node with the same val and no neighbors"
+      explanation: "Map has one entry; neighbor loop is a no-op."
+    - input: "empty input (null)"
+      output: "null"
+      explanation: "Nothing to clone."
+
+acceptable_alternatives:
+  - approach: "BFS with the same original→clone map."
+    note: "Equivalent; DFS recursion depth is O(V) worst case."
+
+common_wrong_approaches:
+  - id: copy_without_map
+    match_signals: ["new Node for every neighbor", "no visited map"]
+    why_wrong: "Cycles and diamonds create infinite recursion or duplicate clones of the same val."
+    counterexample: "Two nodes pointing at each other"
+  - id: copy_val_only
+    match_signals: ["only copy val", "neighbors still point to originals"]
+    why_wrong: "The clone must not share neighbor objects with the input."
+    counterexample: "Mutating the clone's neighbor should not change the original"
+
+required_insights:
+  - id: map_original_to_clone
+    desc: "Stores a mapping from each original node to its unique clone"
+    weight: 3
+    hints:
+      - "How do you know you already cloned a node when a cycle comes back?"
+      - "dict[original] = clone, created on first visit."
+    on_fail_suggestion: "Don't new up a node per edge. Memo original→clone, then attach cloned neighbors."
+  - id: copy_edges
+    desc: "Fills each clone's neighbor list with clones, not originals"
+    weight: 2
+    hints:
+      - "What goes in clone.neighbors?"
+      - "The mapped clones of original.neighbors."
+  - id: complexity
+    desc: "States O(V+E) time"
+    weight: 1
+    hints:
+      - "Each node and edge handled how many times?"
+      - "Once: O(V+E)."
+
+edge_cases: ["null", "one node", "two-node cycle", "disconnected isn't given — graph is connected"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

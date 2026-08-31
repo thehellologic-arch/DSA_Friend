@@ -20,8 +20,16 @@ optimal:
       explanation: "No value finds its required complement among previously seen values."
 
 acceptable_alternatives:
-  - approach: "Sort the values and use two pointers."
+  - id: two_pointers
+    approach: "Sort the values and use two pointers."
     note: "Correct in O(n log n) time, but hashing is faster on average."
+    match_signals:
+      - "two pointer"
+      - "two pointers"
+      - "2 pointer"
+      - "left and right"
+      - "from both ends"
+      - "left pointer"
 
 common_wrong_approaches:
   - id: brute_force_pairs
@@ -39,24 +47,28 @@ required_insights:
     weight: 3
     hints:
       - "For the current number, what exact partner would complete the target?"
+      - "If the current value is x, what must already have been seen?"
       - "Compute target - current value."
   - id: hash_lookup
     desc: "Uses a hash set for constant-time complement lookup"
     weight: 3
     hints:
       - "How can you quickly know whether that partner appeared earlier?"
+      - "A linear scan of the prefix is slow — what data structure answers 'have I seen x?' in O(1)?"
       - "Store seen values in a hash set."
   - id: distinct_elements
     desc: "Checks before inserting to avoid reusing the same element"
     weight: 1
     hints:
       - "Could one array position accidentally be used twice?"
+      - "If you insert first, then look up, what happens on target = 2x with a single x?"
       - "Check for the complement before adding the current value."
   - id: complexity
     desc: "States O(n) time and O(n) space"
     weight: 1
     hints:
       - "How many times is each number processed?"
+      - "Is there a nested loop hiding in the lookups?"
       - "The scan is O(n) time and the set uses O(n) space."
 
 edge_cases: ["empty list", "one element", "duplicate values", "negative values"]

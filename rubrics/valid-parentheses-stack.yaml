@@ -1,0 +1,62 @@
+problem_id: valid-parentheses-stack
+rubric_version: 1
+pattern: stack
+difficulty: 800
+core_ask: "Given a string of ()[]{}, return whether the brackets are valid: matched, nested correctly, and closed in the right order."
+
+optimal:
+  approach: "Scan left to right. Push opening brackets. On a closer, the stack top must be the matching opener; pop. At the end the stack must be empty."
+  complexity: { time: "O(n)", space: "O(n)" }
+  key_insight: "The most recent unmatched opener must match the next closer — exactly a stack."
+  examples:
+    - input: "s = '()[]{}'"
+      output: "true"
+      explanation: "Each closer immediately matches its opener."
+    - input: "s = '(]'"
+      output: "false"
+      explanation: "Wrong type on top of stack."
+    - input: "s = '([)]'"
+      output: "false"
+      explanation: "Crossed nesting; ] would need [ on top but ( is."
+
+acceptable_alternatives:
+  - approach: "Repeatedly replace '()' '[]' '{}' until unchanged."
+    note: "Correct but O(n²); stack is linear."
+
+common_wrong_approaches:
+  - id: count_only
+    match_signals: ["count opens vs closes", "balance counter only"]
+    why_wrong: "Counts miss type and order: '(]' and '([)]'."
+    counterexample: "s = '([)]' has balanced counts but is invalid"
+  - id: reverse_equals
+    match_signals: ["s == reverse with swaps"]
+    why_wrong: "Doesn't handle mixed types and nesting in general."
+    counterexample: "'()[]' reversed is '][()' "
+
+required_insights:
+  - id: stack_openers
+    desc: "Pushes opening brackets and pops on a matching closer"
+    weight: 3
+    hints:
+      - "Which opener must match the current closer?"
+      - "The nearest unmatched one — stack top."
+    on_fail_suggestion: "A single balance count is not enough. Stack openers; closers must match the top."
+  - id: empty_end
+    desc: "Rejects leftover openers and closers with an empty stack"
+    weight: 2
+    hints:
+      - "What about '(' leftover or a closer first?"
+      - "End empty; never pop an empty stack."
+  - id: complexity
+    desc: "States O(n) time"
+    weight: 1
+    hints:
+      - "One pass?"
+      - "O(n) / O(n)."
+
+edge_cases: ["empty string", "only openers", "starts with closer", "nested mixed types"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

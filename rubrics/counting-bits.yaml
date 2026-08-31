@@ -1,0 +1,62 @@
+problem_id: counting-bits
+rubric_version: 1
+pattern: bit-manipulation
+difficulty: 1050
+core_ask: "For every integer i from 0 to n inclusive, return how many 1-bits i has."
+
+optimal:
+  approach: "DP: ans[i] = ans[i >> 1] + (i & 1), i.e. drop the last bit and add it. Equivalent: ans[i] = ans[i & (i-1)] + 1."
+  complexity: { time: "O(n)", space: "O(1)" }
+  key_insight: "The popcount of i is the popcount of i without its lowest bit, plus one — so each answer reuses a smaller index."
+  examples:
+    - input: "n = 2"
+      output: "[0,1,1]"
+      explanation: "0 has no ones; 1 is 1; 2 is 10."
+    - input: "n = 5"
+      output: "[0,1,1,2,1,2]"
+      explanation: "3=11 and 5=101 each have two ones; 4=100 has one."
+    - input: "n = 0"
+      output: "[0]"
+      explanation: "Only zero."
+
+acceptable_alternatives:
+  - approach: "For each i, count bits with i&(i-1) independently."
+    note: "Correct O(n log n) or O(n * k); the DP is strictly linear."
+
+common_wrong_approaches:
+  - id: per_i_string
+    match_signals: ["bin(i).count", "to binary for each"]
+    why_wrong: "Works but extra logs and allocations; misses the reuse."
+    counterexample: "n = 10^5 under a tight time limit"
+  - id: only_powers_of_two
+    match_signals: ["only increment at powers of two"]
+    why_wrong: "Numbers like 3, 5, 6, 7 have more than one bit."
+    counterexample: "n = 5 must include 2 at index 3"
+
+required_insights:
+  - id: reuse_smaller
+    desc: "Computes ans[i] from ans of a smaller number via a bit identity"
+    weight: 3
+    hints:
+      - "How is the popcount of i related to i/2 or to i with its last 1 cleared?"
+      - "ans[i] = ans[i>>1] + (i&1), or ans[i] = ans[i&(i-1)] + 1."
+    on_fail_suggestion: "Don't popcount each i from scratch. DP off the number with the last bit removed."
+  - id: linear_fill
+    desc: "Fills 0..n in order so dependencies are ready"
+    weight: 2
+    hints:
+      - "Why must you fill from small to large?"
+      - "i>>1 and i&(i-1) are both < i for i > 0."
+  - id: complexity
+    desc: "States O(n) time"
+    weight: 1
+    hints:
+      - "Work per i?"
+      - "O(1) work n times: O(n)."
+
+edge_cases: ["n = 0", "n = 1", "n just below a power of two"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

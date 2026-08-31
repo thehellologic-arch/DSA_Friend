@@ -1,0 +1,62 @@
+problem_id: lca-bst
+rubric_version: 1
+pattern: bst
+difficulty: 1200
+core_ask: "Find the lowest common ancestor of two nodes p and q in a BST (a node can be an ancestor of itself)."
+
+optimal:
+  approach: "Walk from the root: if both p and q are < node, go left; if both >, go right; else node is the split and the LCA."
+  complexity: { time: "O(h)", space: "O(1)" }
+  key_insight: "The LCA is the first node whose value sits between p and q (inclusive)."
+  examples:
+    - input: "root = [6,2,8,0,4,7,9,null,null,3,5], p = 2, q = 8"
+      output: "6"
+      explanation: "2 < 6 < 8, so the split is the root."
+    - input: "same tree, p = 2, q = 4"
+      output: "2"
+      explanation: "4 is in 2's right subtree; a node is an ancestor of itself."
+    - input: "root = [2,1], p = 2, q = 1"
+      output: "2"
+      explanation: "Root is one of the nodes."
+
+acceptable_alternatives:
+  - approach: "General binary-tree LCA (parent pointers or recurse both sides)."
+    note: "Correct O(n) but ignores BST order; mention the O(h) walk."
+
+common_wrong_approaches:
+  - id: general_lca_only
+    match_signals: ["search both subtrees always", "ignore BST"]
+    why_wrong: "Works but is slower than using the search property."
+    counterexample: "Interview follow-up: use BST to get O(h)"
+  - id: min_value
+    match_signals: ["return min(p,q)"]
+    why_wrong: "The ancestor may be neither p nor q and not the min."
+    counterexample: "p=2,q=8 LCA is 6"
+
+required_insights:
+  - id: walk_until_split
+    desc: "Descends left/right while both keys lie on one side; stops at the split"
+    weight: 3
+    hints:
+      - "When do p and q lie in different directions?"
+      - "When node is between them (or equals one of them)."
+    on_fail_suggestion: "From the root, go left if both values are smaller, right if both larger; otherwise this node is the LCA."
+  - id: node_can_be_self
+    desc: "Allows p or q itself to be the LCA"
+    weight: 1
+    hints:
+      - "If q is in p's subtree, who is LCA?"
+      - "p."
+  - id: complexity
+    desc: "States O(h) time, O(1) space iterative"
+    weight: 1
+    hints:
+      - "Need to visit the whole tree?"
+      - "No — one root-to-LCA path."
+
+edge_cases: ["p is ancestor of q", "p and q on opposite sides", "p or q is root", "skewed BST"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

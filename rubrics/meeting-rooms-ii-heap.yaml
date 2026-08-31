@@ -1,0 +1,69 @@
+problem_id: meeting-rooms-ii-heap
+rubric_version: 1
+pattern: heap
+difficulty: 1550
+core_ask: "Given meeting intervals, return the minimum number of conference rooms required. (Premium)"
+
+optimal:
+  approach: "Sort meetings by start. Keep a min-heap of end times of rooms in use. For each meeting, if the earliest end <= start, reuse that room (pop); then push this meeting's end. Heap size is rooms used; track the max size (or just the final size if you always pop when possible — max during the scan)."
+  complexity: { time: "O(n log n)", space: "O(n)" }
+  key_insight: "A new meeting needs a new room only if every ongoing meeting ends after it starts; the earliest-ending room is the one to try first."
+  examples:
+    - input: "intervals = [[0,30],[5,10],[15,20]]"
+      output: "2"
+      explanation: "[0,30] occupies a room; [5,10] needs a second; [15,20] reuses the room freed at 10."
+    - input: "intervals = [[7,10],[2,4]]"
+      output: "1"
+      explanation: "Sequential after sort; heap never holds two ends."
+    - input: "intervals = [[1,5],[8,9],[8,9]]"
+      output: "2"
+      explanation: "Two meetings start at 8 while nothing has ended yet after 5."
+
+acceptable_alternatives:
+  - approach: "Separate sorted starts and ends; two pointers counting current rooms."
+    note: "O(n log n) too, no heap; equally valid."
+
+common_wrong_approaches:
+  - id: max_overlap_brute
+    match_signals: ["for each time check how many contain it", "nested intervals"]
+    why_wrong: "O(n²) or worse; misses the sweep."
+    counterexample: "n = 10^4 meetings"
+  - id: max_simultaneous_sort_start_only
+    match_signals: ["count max overlapping by start order without freeing rooms"]
+    why_wrong: "You must free rooms whose end <= next start."
+    counterexample: "[[0,30],[5,10],[15,20]] without reuse yields 3 not 2"
+
+required_insights:
+  - id: sort_starts
+    desc: "Processes meetings in start-time order"
+    weight: 2
+    hints:
+      - "In what order do you assign rooms?"
+      - "Chronological by start."
+  - id: earliest_end_reuse
+    desc: "Reuses a room if the earliest ongoing end <= new start (heap or two-pointer ends)"
+    weight: 3
+    hints:
+      - "Which busy room could free in time?"
+      - "If you always look at the room that finishes soonest, you never open a new room unnecessarily."
+      - "The one that ends soonest — min-heap of ends, or a pointer on sorted ends."
+    on_fail_suggestion: "Min-heap of end times (or two sorted arrays): pop when a room is free, push the new end, answer is max heap size."
+  - id: answer_is_peak
+    desc: "The answer is the peak number of concurrent rooms, not the total meetings"
+    weight: 1
+    hints:
+      - "Is the answer n?"
+      - "No — max concurrent (heap size / counter)."
+  - id: complexity
+    desc: "States O(n log n)"
+    weight: 1
+    hints:
+      - "Heap ops n times plus sort?"
+      - "O(n log n)."
+
+edge_cases: ["all overlap", "chain with touching ends", "identical start times", "one meeting"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

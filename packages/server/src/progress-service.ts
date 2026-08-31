@@ -19,6 +19,7 @@ import type {
   TopicProgressRow,
   UserRecord,
 } from "./progress-repository.js";
+import { listTracks } from "./track-store.js";
 
 export interface RecordVerdictInput {
   userId: string;
@@ -61,8 +62,28 @@ export interface RoadmapTopic extends TopicProgress {
   levels: RoadmapLevel[];
 }
 
+export interface RoadmapTrackProblem extends RecommendableProblem {
+  title: string;
+  completed: boolean;
+}
+
+export interface RoadmapTrackGroup {
+  id: string;
+  title: string;
+  completedCount: number;
+  problemCount: number;
+  problems: RoadmapTrackProblem[];
+}
+
+export interface RoadmapTrack {
+  id: string;
+  title: string;
+  groups: RoadmapTrackGroup[];
+}
+
 export interface Roadmap {
   skillLevel: SkillLevel;
+  tracks: RoadmapTrack[];
   topics: RoadmapTopic[];
 }
 
@@ -235,6 +256,10 @@ export class ProgressService {
   async getRoadmap(userId: string): Promise<Roadmap> {
     const progress = await this.getProgress(userId);
     const problems = this.listProblems();
+    const bySlug = new Map(problems.map((problem) => [problem.slug, problem]));
+    const completed = new Set(
+      (await this.repo.listAttempts(userId)).map((attempt) => attempt.problemSlug),
+    );
     const topics = progress.topics.map((topic) => {
       const recommendedLevel = ratingToLevel(topic.rating);
       const levels = [1, 2, 3, 4, 5].map((level) => ({
@@ -253,7 +278,32 @@ export class ProgressService {
       }));
       return { ...topic, recommendedLevel, levels };
     });
-    return { skillLevel: progress.skillLevel, topics };
+    const tracks = listTracks().map((track) => ({
+      id: track.id,
+      title: track.title,
+      groups: track.groups.map((group) => {
+        const groupProblems = group.problems.flatMap((entry) => {
+          const problem = bySlug.get(entry.slug);
+          if (!problem) return [];
+          return [
+            {
+              ...problem,
+              title: entry.title,
+              completed: completed.has(entry.slug),
+            },
+          ];
+        });
+        return {
+          id: group.id,
+          title: group.title,
+          completedCount: groupProblems.filter((problem) => problem.completed)
+            .length,
+          problemCount: groupProblems.length,
+          problems: groupProblems,
+        };
+      }),
+    }));
+    return { skillLevel: progress.skillLevel, tracks, topics };
   }
 
   async recommendNext(

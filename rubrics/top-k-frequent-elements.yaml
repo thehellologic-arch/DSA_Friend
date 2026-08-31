@@ -1,0 +1,64 @@
+problem_id: top-k-frequent-elements
+rubric_version: 1
+pattern: heap
+difficulty: 1300
+core_ask: "Return the k most frequent elements in nums. Order among them does not matter."
+
+optimal:
+  approach: "Count frequencies in a hashmap. Use a min-heap of size k on counts (or bucket sort by frequency for O(n)). Pop leftover to get the k largest frequencies."
+  complexity: { time: "O(n log k)", space: "O(n)" }
+  key_insight: "You need the k largest counts, not a full sort of n keys — a size-k heap or frequency buckets suffice."
+  examples:
+    - input: "nums = [1,1,1,2,2,3], k = 2"
+      output: "[1,2]"
+      explanation: "1 appears 3 times, 2 twice, 3 once."
+    - input: "nums = [1], k = 1"
+      output: "[1]"
+      explanation: "Only one value."
+    - input: "nums = [4,4,4,5,5,6], k = 1"
+      output: "[4]"
+      explanation: "4 is uniquely most frequent."
+
+acceptable_alternatives:
+  - approach: "Bucket array indexed by frequency (max n), collect from the high end."
+    note: "O(n) time; mention as optimal."
+  - approach: "Sort unique keys by count."
+    note: "O(u log u); fine if they know heap/buckets are better."
+
+common_wrong_approaches:
+  - id: sort_whole_array
+    match_signals: ["sort nums", "then count runs only"]
+    why_wrong: "Works but O(n log n); also easy to confuse with 'k largest values' not frequencies."
+    counterexample: "[1,1,1,2] k=1 is [1], not [2]"
+  - id: k_largest_values
+    match_signals: ["k largest numbers", "heap of values not counts"]
+    why_wrong: "The metric is frequency, not magnitude."
+    counterexample: "nums = [5,1,1], k=1 → [1]"
+
+required_insights:
+  - id: count_first
+    desc: "Builds a frequency map"
+    weight: 2
+    hints:
+      - "What do you heapify — the numbers or their counts?"
+      - "Count first, then take top k by count."
+  - id: topk_structure
+    desc: "Uses a size-k heap, bucket sort, or sort of unique keys by frequency"
+    weight: 3
+    hints:
+      - "How do you avoid sorting all n elements?"
+      - "Min-heap of k pairs (count, value), or frequency buckets."
+    on_fail_suggestion: "Hash counts, then min-heap of size k (or buckets). Don't pick the k largest values."
+  - id: complexity
+    desc: "States O(n log k) heap or O(n) buckets"
+    weight: 1
+    hints:
+      - "u unique keys, heap size k?"
+      - "O(n + u log k)."
+
+edge_cases: ["k = 1", "k = number of unique", "all equal", "ties in frequency (any k of them)"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

@@ -1,0 +1,68 @@
+problem_id: combination-sum-iv-dp
+rubric_version: 1
+pattern: dynamic-programming
+difficulty: 1550
+core_ask: "Given distinct positive nums and a target, return the number of ordered combinations that sum to target (order matters; [1,2] and [2,1] are different). Nums may be reused."
+
+optimal:
+  approach: "dp[x] = number of ordered ways to make x. dp[0]=1. For each amount x, add dp[x-num] for every num <= x."
+  complexity: { time: "O(target * n)", space: "O(target)" }
+  key_insight: "Because order matters, you iterate amounts in the outer loop and nums inside — each way to make x-num can be followed by that num."
+  examples:
+    - input: "nums = [1,2,3], target = 4"
+      output: "7"
+      explanation: "The seven ordered tuples: (1,1,1,1), (1,1,2), (1,2,1), (2,1,1), (2,2), (1,3), (3,1)."
+    - input: "nums = [9], target = 3"
+      output: "0"
+      explanation: "Every coin is larger than 3."
+    - input: "nums = [1], target = 1"
+      output: "1"
+      explanation: "Only (1)."
+
+acceptable_alternatives:
+  - approach: "Top-down memo: ways(remain) = sum of ways(remain-num)."
+    note: "Same recurrence; watch overflow if the language uses 32-bit ints (LeetCode uses 32-bit)."
+
+common_wrong_approaches:
+  - id: unordered_knapsack
+    match_signals: ["outer loop coins", "combinations not permutations", "coin change 2"]
+    why_wrong: "Looping coins outside amounts counts unordered combinations, so [1,2] is not separate from [2,1]."
+    counterexample: "nums = [1,2], target = 3 — unordered ways is 2, ordered ways is 3"
+  - id: must_use_all
+    match_signals: ["permutation of the whole array"]
+    why_wrong: "You pick any length sequence of allowed numbers, not a permutation of nums."
+    counterexample: "nums = [1,2,3], target = 4 includes four 1s"
+
+required_insights:
+  - id: order_matters
+    desc: "Treats different orders as different solutions"
+    weight: 2
+    hints:
+      - "Are [1,2] and [2,1] the same answer?"
+      - "No — count permutations of coins, not combinations."
+  - id: amount_outer
+    desc: "Uses permutation-style DP: for each amount, try each num as the last (or next) choice"
+    weight: 3
+    hints:
+      - "How does the loop order change combinations vs permutations?"
+      - "for x in 1..target: for num in nums: dp[x] += dp[x-num]."
+    on_fail_suggestion: "This is not Coin Change II. Outer loop amounts so each order is counted."
+  - id: base_one
+    desc: "Sets dp[0] = 1 as the empty sequence"
+    weight: 1
+    hints:
+      - "How many ways to make 0?"
+      - "One empty way, so later +num can start."
+  - id: complexity
+    desc: "States O(target * n) time"
+    weight: 1
+    hints:
+      - "Two nested loops of what size?"
+      - "target times n."
+
+edge_cases: ["impossible target", "single num equals target", "overflow of way counts"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

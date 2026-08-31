@@ -1,0 +1,62 @@
+problem_id: contains-duplicate-hash-set
+rubric_version: 1
+pattern: hashing
+difficulty: 800
+core_ask: "Given an array of integers, return true if any value appears at least twice, otherwise false."
+
+optimal:
+  approach: "Insert values into a hash set while scanning; if a value is already in the set, a duplicate exists."
+  complexity: { time: "O(n)", space: "O(n)" }
+  key_insight: "A hash set answers 'have I seen this value?' in expected constant time."
+  examples:
+    - input: "nums = [1,2,3,1]"
+      output: "true"
+      explanation: "When the second 1 is seen, it is already in the set."
+    - input: "nums = [1,2,3,4]"
+      output: "false"
+      explanation: "Every insert succeeds; the set never hits a repeat."
+    - input: "nums = [1,1,1,3,3,4]"
+      output: "true"
+      explanation: "The second 1 is detected immediately, without finishing the array."
+
+acceptable_alternatives:
+  - approach: "Sort, then check adjacent pairs."
+    note: "Correct in O(n log n) time and O(1) extra space if sorting in place is allowed."
+
+common_wrong_approaches:
+  - id: nested_compare
+    match_signals: ["nested loops", "compare every pair", "brute force"]
+    why_wrong: "Works but is O(n²) and times out on large n."
+    counterexample: "An array of 100,000 distinct values"
+  - id: xor_all
+    match_signals: ["xor everything", "xor all"]
+    why_wrong: "XOR cancels pairs but cannot tell distinct vs many duplicates vs zeros."
+    counterexample: "nums = [1,2,3] XOR is nonzero yet there is no duplicate"
+
+required_insights:
+  - id: seen_set
+    desc: "Uses a hash set of values already visited"
+    weight: 3
+    hints:
+      - "How do you remember which numbers already appeared?"
+      - "Store seen values in a hash set."
+    on_fail_suggestion: "Don't compare every pair. Ask the set whether the current value was seen."
+  - id: early_exit
+    desc: "Returns true as soon as a repeat is found"
+    weight: 1
+    hints:
+      - "Do you need to finish the array after finding a duplicate?"
+      - "Return true on the first set collision."
+  - id: complexity
+    desc: "States O(n) time and O(n) space"
+    weight: 1
+    hints:
+      - "What is the cost of n hash inserts?"
+      - "O(n) time and O(n) space for the set."
+
+edge_cases: ["empty array", "one element", "all duplicates", "negatives"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

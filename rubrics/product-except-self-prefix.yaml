@@ -1,0 +1,70 @@
+problem_id: product-except-self-prefix
+rubric_version: 1
+pattern: prefix-product
+difficulty: 1300
+core_ask: "Return an array where answer[i] is the product of all nums[j] for j != i, without using division."
+
+optimal:
+  approach: "First fill answer[i] with the product of everything left of i. Then scan right to left, multiplying in a running right product."
+  complexity: { time: "O(n)", space: "O(1)" }
+  key_insight: "answer[i] = (product of left) × (product of right), and those two prefixes can be built in two passes without division."
+  examples:
+    - input: "nums = [1,2,3,4]"
+      output: "[24,12,8,6]"
+      explanation: "Left products [1,1,2,6], then multiply right products 24,12,4,1 while scanning backward."
+    - input: "nums = [-1,1,0,-3,3]"
+      output: "[0,0,9,0,0]"
+      explanation: "The zero sits at index 2, so every other index's product includes 0; index 2 gets (-1)*1*(-3)*3 = 9."
+    - input: "nums = [2,3]"
+      output: "[3,2]"
+      explanation: "Each index's answer is simply the other element."
+
+acceptable_alternatives:
+  - approach: "Build explicit left[] and right[] arrays, then multiply."
+    note: "Correct O(n) time but uses O(n) extra space; the output array can store left products in place."
+
+common_wrong_approaches:
+  - id: divide_total
+    match_signals: ["divide total product", "product of all / nums[i]", "division"]
+    why_wrong: "Division is forbidden and breaks on zeros."
+    counterexample: "nums = [1,0,2] — total product is 0, so division cannot recover the 2 at index 1"
+  - id: nested_product
+    match_signals: ["for each i multiply the rest", "nested loops"]
+    why_wrong: "O(n²) recomputes overlapping products."
+    counterexample: "n = 10^5"
+
+required_insights:
+  - id: no_division
+    desc: "Avoids division; builds products from neighbors"
+    weight: 2
+    hints:
+      - "Why is total-product divided by nums[i] unsafe?"
+      - "Do not divide. Combine left and right products instead."
+    on_fail_suggestion: "Division fails on zeros and is banned. Prefix the left product, then fold in the right product."
+  - id: left_prefix
+    desc: "answer[i] first stores product of all elements strictly left of i"
+    weight: 3
+    hints:
+      - "What information about index i can you know after a left-to-right scan?"
+      - "If you are not allowed to divide, what prefix can you precompute into the answer array?"
+      - "answer[i] = product of nums[0..i-1], with answer[0] = 1."
+  - id: right_suffix
+    desc: "A backward pass multiplies the product of elements strictly right of i"
+    weight: 3
+    hints:
+      - "After left products sit in answer, what is still missing?"
+      - "You need the product of everything strictly to the right — can a backward running product supply that?"
+      - "Scan right to left with a running suffix product and multiply into answer[i]."
+  - id: complexity
+    desc: "States O(n) time and O(1) extra space (output excluded)"
+    weight: 1
+    hints:
+      - "How many passes, and where is extra memory?"
+      - "Two O(n) passes; extra space is a few scalars if answer is not counted."
+
+edge_cases: ["contains one zero", "contains two zeros", "negatives", "length 2"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

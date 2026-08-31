@@ -51,6 +51,7 @@ export class InMemorySessionStore {
         probesUsedByInsight: {},
         selfCorrections: 0,
         hadWrongApproach: false,
+        lastAcceptableAlternative: null,
       },
       turns: [],
       idempotencyCache: new Map(),

@@ -1,0 +1,62 @@
+problem_id: unique-paths-dp
+rubric_version: 1
+pattern: dynamic-programming
+difficulty: 1050
+core_ask: "A robot on an m x n grid starts at top-left and may only move right or down. How many unique paths reach the bottom-right?"
+
+optimal:
+  approach: "dp[i][j] = dp[i-1][j] + dp[i][j-1] with first row/col = 1. Combinatorics: C(m+n-2, m-1)."
+  complexity: { time: "O(m n)", space: "O(n)" }
+  key_insight: "Every path is a sequence of (m-1) downs and (n-1) rights, and you can also build that count by summing paths into each cell from above and left."
+  examples:
+    - input: "m = 3, n = 7"
+      output: "28"
+      explanation: "C(8,2)=28 downs/rights arrangements; DP grid fills to 28."
+    - input: "m = 3, n = 2"
+      output: "3"
+      explanation: "DDR, DRD, RDD."
+    - input: "m = 1, n = 1"
+      output: "1"
+      explanation: "Already there; one empty path."
+
+acceptable_alternatives:
+  - approach: "Binomial coefficient C(m+n-2, m-1) in O(min(m,n))."
+    note: "Optimal time; DP is the standard interview derivation."
+
+common_wrong_approaches:
+  - id: m_times_n
+    match_signals: ["m*n paths", "m+n paths"]
+    why_wrong: "Path count is binomial, not area or perimeter."
+    counterexample: "3x2 is 3 paths, not 6 or 5"
+  - id: dfs_no_memo
+    match_signals: ["recurse right and down without memo"]
+    why_wrong: "Exponential overlap."
+    counterexample: "m = n = 10"
+
+required_insights:
+  - id: from_above_left
+    desc: "A cell's path count is sum of the cell above and the cell to the left"
+    weight: 3
+    hints:
+      - "How could the robot have entered this square?"
+      - "Only from up or from left: add those two path counts."
+    on_fail_suggestion: "Don't multiply m*n. DP each cell as paths-from-above plus paths-from-left (or use C(m+n-2, m-1))."
+  - id: first_row_col
+    desc: "First row and first column each have exactly 1 path"
+    weight: 1
+    hints:
+      - "How many ways to walk along the top edge?"
+      - "Only rights (or only downs): one way, so fill 1s."
+  - id: complexity
+    desc: "States O(m n) DP time, or O(min(m,n)) for binomial"
+    weight: 1
+    hints:
+      - "How many cells?"
+      - "O(m n), one row of space if you roll."
+
+edge_cases: ["1xn", "mx1", "1x1", "large m,n overflow"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

@@ -5,6 +5,8 @@ export interface RecommendableProblem {
   pattern: string;
   difficulty: number;
   coreAsk: string;
+  title?: string;
+  topic?: string;
 }
 
 export interface RecommendContext {

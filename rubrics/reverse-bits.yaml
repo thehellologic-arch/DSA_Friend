@@ -1,0 +1,62 @@
+problem_id: reverse-bits
+rubric_version: 1
+pattern: bit-manipulation
+difficulty: 1000
+core_ask: "Reverse the 32 bits of an unsigned integer and return the resulting integer."
+
+optimal:
+  approach: "For i in 0..31, take bit i of n and write it at position 31-i of the answer. Or reverse by swapping 16-bit halves, then 8, 4, 2, 1."
+  complexity: { time: "O(1)", space: "O(1)" }
+  key_insight: "Bit i of the input becomes bit 31-i of the output; 32 is a fixed width so you must pad leading zeros."
+  examples:
+    - input: "n = 43261596 (00000010100101000001111010011100)"
+      output: "964176192 (00111001011110000010100101000000)"
+      explanation: "Each bit is mirrored around the 16-16 center of the 32-bit word."
+    - input: "n = 1"
+      output: "2147483648"
+      explanation: "The least bit moves to position 31: 1 << 31."
+    - input: "n = 0"
+      output: "0"
+      explanation: "All zeros reverse to zeros."
+
+acceptable_alternatives:
+  - approach: "Build a 32-char bit string, reverse, parse."
+    note: "Correct but not bit-native; mention the loop or SWAR reverse."
+
+common_wrong_approaches:
+  - id: reverse_until_zero
+    match_signals: ["while n > 0", "stop when n is 0", "don't pad to 32"]
+    why_wrong: "Leading zeros of the original must become trailing zeros of the reverse — you still need 32 steps."
+    counterexample: "n = 1 should become 2^31, not 1"
+  - id: signed_shift
+    match_signals: ["arithmetic right shift", ">> on a signed negative"]
+    why_wrong: "Sign-extending shifts fill 1s and corrupt the reverse."
+    counterexample: "high bit set: treat n as unsigned / use logical shift"
+
+required_insights:
+  - id: fixed_32
+    desc: "Always processes exactly 32 bit positions"
+    weight: 2
+    hints:
+      - "Why isn't reversing until n becomes 0 enough?"
+      - "The word is 32 bits wide; leading zeros still move."
+    on_fail_suggestion: "Don't stop when n is 0. Reverse a full 32-bit word so 1 becomes 1<<31."
+  - id: place_mirrored_bit
+    desc: "Writes input bit i into output bit 31-i"
+    weight: 3
+    hints:
+      - "Where does bit i belong in the reversed word?"
+      - "If (n>>i)&1, set bit (31-i) on the result."
+  - id: complexity
+    desc: "States O(1) time for a 32-bit word"
+    weight: 1
+    hints:
+      - "Does n grow the loop?"
+      - "32 steps: O(1)."
+
+edge_cases: ["0", "1", "all bits set", "only MSB set"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

@@ -1,0 +1,62 @@
+problem_id: binary-tree-level-order
+rubric_version: 1
+pattern: tree
+difficulty: 1100
+core_ask: "Return the level-order traversal of a binary tree as a list of levels (each level left to right)."
+
+optimal:
+  approach: "BFS queue. While queue nonempty, snapshot the current size as the level width, pop that many nodes into a list, and push their children."
+  complexity: { time: "O(n)", space: "O(w)" }
+  key_insight: "Queue size at the start of an iteration is exactly one level."
+  examples:
+    - input: "root = [3,9,20,null,null,15,7]"
+      output: "[[3],[9,20],[15,7]]"
+      explanation: "Three BFS layers."
+    - input: "root = [1]"
+      output: "[[1]]"
+      explanation: "One level."
+    - input: "root = []"
+      output: "[]"
+      explanation: "No levels."
+
+acceptable_alternatives:
+  - approach: "DFS with (node, depth), appending to ans[depth]."
+    note: "Correct; BFS is the natural match."
+
+common_wrong_approaches:
+  - id: flatten
+    match_signals: ["single flat list", "not grouped by level"]
+    why_wrong: "The required shape is a list of lists, one per depth."
+    counterexample: "[3,9,20,...] as one array is preorder/BFS flatten, not grouped"
+  - id: dfs_preorder_as_levels
+    match_signals: ["preorder dump"]
+    why_wrong: "Preorder is not level order."
+    counterexample: "Left subtree would appear before the right sibling on the same level"
+
+required_insights:
+  - id: bfs_or_depth
+    desc: "Uses BFS capturing queue size per level, or DFS keyed by depth"
+    weight: 3
+    hints:
+      - "How do you know a level ended?"
+      - "Process exactly queue.length nodes, or pass depth in DFS."
+    on_fail_suggestion: "BFS: for each layer, take the current queue size and collect that many nodes."
+  - id: left_to_right
+    desc: "Enqueues left child then right so each level is left-to-right"
+    weight: 1
+    hints:
+      - "Child order?"
+      - "Left then right."
+  - id: complexity
+    desc: "States O(n)"
+    weight: 1
+    hints:
+      - "Each node once?"
+      - "O(n)."
+
+edge_cases: ["empty", "skewed", "perfect tree", "missing children (nulls not listed)"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

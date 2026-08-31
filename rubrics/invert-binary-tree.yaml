@@ -1,0 +1,62 @@
+problem_id: invert-binary-tree
+rubric_version: 1
+pattern: tree
+difficulty: 800
+core_ask: "Invert a binary tree (mirror left and right at every node) and return the root."
+
+optimal:
+  approach: "DFS or BFS: swap node.left and node.right, then invert both children. Return the same root."
+  complexity: { time: "O(n)", space: "O(h)" }
+  key_insight: "Mirroring is a local swap at every node; order of swapping vs recursing both work if you swap once per node."
+  examples:
+    - input: "root = [4,2,7,1,3,6,9]"
+      output: "[4,7,2,9,6,3,1]"
+      explanation: "Each pair of children is swapped down the tree."
+    - input: "root = [2,1,3]"
+      output: "[2,3,1]"
+      explanation: "One swap at the root."
+    - input: "root = []"
+      output: "[]"
+      explanation: "Empty."
+
+acceptable_alternatives:
+  - approach: "BFS queue, swap children of each dequeued node."
+    note: "Same O(n)."
+
+common_wrong_approaches:
+  - id: swap_values
+    match_signals: ["swap values not child pointers"]
+    why_wrong: "Subtrees must move, not just the two child values."
+    counterexample: "[4,2,7,1,3,6,9] — swapping 2 and 7 values without moving 1,3,6,9 is wrong"
+  - id: only_root
+    match_signals: ["only swap the root's children"]
+    why_wrong: "Every level must be mirrored."
+    counterexample: "Need to invert grandchildren too"
+
+required_insights:
+  - id: swap_pointers
+    desc: "Swaps left and right child pointers at each node"
+    weight: 3
+    hints:
+      - "What do you exchange?"
+      - "The child references, then recurse (or queue) both."
+    on_fail_suggestion: "Swap left/right pointers everywhere, not just values at the root."
+  - id: whole_tree
+    desc: "Applies the swap to every node, not only the root"
+    weight: 2
+    hints:
+      - "Is one swap enough?"
+      - "No — invert both subtrees."
+  - id: complexity
+    desc: "States O(n)"
+    weight: 1
+    hints:
+      - "Each node once?"
+      - "O(n)."
+
+edge_cases: ["empty", "single node", "skewed left", "full tree"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

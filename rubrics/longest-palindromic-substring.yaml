@@ -1,0 +1,62 @@
+problem_id: longest-palindromic-substring
+rubric_version: 1
+pattern: two-pointers
+difficulty: 1500
+core_ask: "Return the longest palindromic substring of s. If several, any one is fine."
+
+optimal:
+  approach: "Expand around centers: for each index, expand an odd palindrome (center i) and an even one (center i, i+1). Track the longest. Manacher is O(n) but optional."
+  complexity: { time: "O(n²)", space: "O(1)" }
+  key_insight: "Every palindrome has a center (a char or a gap between chars), so 2n-1 expansions find all of them."
+  examples:
+    - input: "s = 'babad'"
+      output: "'bab'"
+      explanation: "'aba' is also valid; expand at index 1 or 2."
+    - input: "s = 'cbbd'"
+      output: "'bb'"
+      explanation: "Even-length expand between the two b's."
+    - input: "s = 'a'"
+      output: "'a'"
+      explanation: "Single character is a palindrome."
+
+acceptable_alternatives:
+  - approach: "DP table dp[i][j] true if s[i..j] is palindrome; fill by length."
+    note: "O(n²) time and space; expand-around-center is O(1) extra space."
+
+common_wrong_approaches:
+  - id: reverse_lcs
+    match_signals: ["LCS of s and reverse(s)"]
+    why_wrong: "LCS can pick a non-contiguous subsequence that is not a substring palindrome."
+    counterexample: "s = 'aacabdkacaa' — LCS with reverse can yield a longer non-substring"
+  - id: odd_centers_only
+    match_signals: ["only expand on characters", "forget even length"]
+    why_wrong: "Misses even palindromes like 'bb'."
+    counterexample: "s = 'cbbd'"
+
+required_insights:
+  - id: expand_centers
+    desc: "Expands palindromes from 2n-1 centers (odd and even)"
+    weight: 3
+    hints:
+      - "Where can a palindrome be centered?"
+      - "On a letter, or between two letters."
+    on_fail_suggestion: "Don't use LCS with the reverse. Expand around every odd and even center."
+  - id: track_best
+    desc: "Records start/end (or length) of the longest seen palindrome"
+    weight: 2
+    hints:
+      - "What do you keep while expanding?"
+      - "The best [L,R] span."
+  - id: complexity
+    desc: "States O(n²) time"
+    weight: 1
+    hints:
+      - "n centers, each expand O(n)?"
+      - "O(n²). Manacher is the O(n) extra."
+
+edge_cases: ["all unique", "entire string palindrome", "even vs odd", "two same chars"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

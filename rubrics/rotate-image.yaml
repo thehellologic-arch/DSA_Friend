@@ -1,0 +1,62 @@
+problem_id: rotate-image
+rubric_version: 1
+pattern: matrix
+difficulty: 1300
+core_ask: "Rotate an n x n matrix 90 degrees clockwise in place."
+
+optimal:
+  approach: "Transpose, then reverse each row. Equivalently, rotate layer by layer: four-way swap of cells (i,j) → (j,n-1-i) → ..."
+  complexity: { time: "O(n²)", space: "O(1)" }
+  key_insight: "A 90° clockwise rotation is 'column j becomes row j, reversed' — transpose plus reverse rows."
+  examples:
+    - input: "[[1,2,3],[4,5,6],[7,8,9]]"
+      output: "[[7,4,1],[8,5,2],[9,6,3]]"
+      explanation: "Transpose then reverse rows: [[1,4,7]..] reversed to [[7,4,1]..]."
+    - input: "[[1,2],[3,4]]"
+      output: "[[3,1],[4,2]]"
+      explanation: "Four-cycle (1→2→4→3→1)."
+    - input: "[[1]]"
+      output: "[[1]]"
+      explanation: "No-op."
+
+acceptable_alternatives:
+  - approach: "Layer-by-layer 4-cycles without an explicit transpose."
+    note: "Same complexity; transpose+reverse is easier to remember."
+
+common_wrong_approaches:
+  - id: extra_matrix
+    match_signals: ["allocate a new n x n"]
+    why_wrong: "The problem requires in-place."
+    counterexample: "Follow-up: O(1) extra memory"
+  - id: transpose_only
+    match_signals: ["only transpose", "only reverse rows"]
+    why_wrong: "Each step alone is not a 90° rotation."
+    counterexample: "[[1,2],[3,4]] transpose is [[1,3],[2,4]], not the rotation"
+
+required_insights:
+  - id: transpose_then_reverse
+    desc: "Uses transpose + reverse rows, or equivalent 4-cycles on layers"
+    weight: 3
+    hints:
+      - "What two reflections compose a 90° clockwise turn?"
+      - "Transpose, then reverse each row (or rotate 4-tuples)."
+    on_fail_suggestion: "Don't allocate a second matrix. Transpose in place, then reverse each row."
+  - id: in_place_swap
+    desc: "Swaps without a full extra grid"
+    weight: 2
+    hints:
+      - "How do you transpose in place?"
+      - "Swap matrix[i][j] with matrix[j][i] for j > i."
+  - id: complexity
+    desc: "States O(n²) time, O(1) extra space"
+    weight: 1
+    hints:
+      - "Every cell moved a constant number of times?"
+      - "Yes."
+
+edge_cases: ["n=1", "n=2", "even n", "odd n (center fixed)"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

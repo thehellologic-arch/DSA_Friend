@@ -1,0 +1,62 @@
+problem_id: decode-ways-dp
+rubric_version: 1
+pattern: dynamic-programming
+difficulty: 1450
+core_ask: "A mapping '1'->A .. '26'->Z is used. Given a digit string s, return how many ways it can be decoded. Leading zeros are invalid."
+
+optimal:
+  approach: "dp[i] = ways to decode the prefix of length i. A single digit s[i-1] in 1..9 adds dp[i-1]. A two-digit 10..26 adds dp[i-2]. Zeros only work as part of 10 or 20."
+  complexity: { time: "O(n)", space: "O(1)" }
+  key_insight: "Each position continues a 1-digit code and/or a 2-digit code, except '0' which cannot start a code."
+  examples:
+    - input: "s = '12'"
+      output: "2"
+      explanation: "'AB' (1,2) and 'L' (12)."
+    - input: "s = '226'"
+      output: "3"
+      explanation: "2,2,6 / 22,6 / 2,26."
+    - input: "s = '06'"
+      output: "0"
+      explanation: "Cannot decode a leading zero; 06 is not a valid two-digit (would be 6) and '0' is invalid."
+
+acceptable_alternatives:
+  - approach: "Memoized DFS from index i."
+    note: "Same recurrence; rolling two integers is enough."
+
+common_wrong_approaches:
+  - id: ignore_zero
+    match_signals: ["treat 0 as O", "0 is valid alone", "Fibonacci without zeros"]
+    why_wrong: "'0' has no letter; '10' and '20' are the only legal zeros."
+    counterexample: "s = '10' is 1 way; s = '30' is 0; s = '01' is 0"
+  - id: any_two_digits
+    match_signals: ["any two digits 00-99", "always add two-digit"]
+    why_wrong: "27-99 and 00-09 (except the 10/20 cases handled separately) are invalid."
+    counterexample: "s = '27' is only 2,7 — not a letter 27"
+
+required_insights:
+  - id: one_and_two
+    desc: "Adds ways from a valid 1-digit and/or valid 2-digit ending at i"
+    weight: 3
+    hints:
+      - "What encodings can end at this index?"
+      - "s[i] as 1-9, and s[i-1..i] as 10-26."
+    on_fail_suggestion: "This is not plain Fibonacci. Gate the +1 / +2 transitions on valid letter codes, especially zeros."
+  - id: zero_rules
+    desc: "Rejects standalone 0 and only allows 10 and 20 as two-digit zeros"
+    weight: 2
+    hints:
+      - "When is a 0 legal?"
+      - "Only as the second digit of 10 or 20."
+  - id: complexity
+    desc: "States O(n) time"
+    weight: 1
+    hints:
+      - "One pass?"
+      - "O(n) with two previous way-counts."
+
+edge_cases: ["leading zero", "consecutive zeros", "10 and 20", "26 vs 27"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

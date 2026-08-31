@@ -19,6 +19,7 @@ import { OllamaProvider } from "./ollama-provider.js";
 import { OpenAIProvider } from "./openai-provider.js";
 import { ProgressService } from "./progress-service.js";
 import { getRubric, listProblems, loadRubrics } from "./rubric-store.js";
+import { loadTracks } from "./track-store.js";
 import {
   getTranscript,
   InMemorySessionStore,
@@ -50,6 +51,7 @@ if (!OPENROUTER_API_KEY && !GEMINI_API_KEY && !OLLAMA_BASE_URL) {
   process.exit(1);
 }
 
+loadTracks();
 loadRubrics();
 
 function knownPatterns(): string[] {
@@ -97,6 +99,10 @@ await app.register(async (api) => {
   api.get<{ Querystring: { pattern?: string; difficulty?: string } }>(
     "/problems",
     async (req) => {
+      if (!isProd) {
+        loadTracks();
+        loadRubrics();
+      }
       const pattern = req.query.pattern?.trim();
       const difficulty = req.query.difficulty
         ? Number(req.query.difficulty)
@@ -120,6 +126,10 @@ await app.register(async (api) => {
   });
 
   api.get("/me/roadmap", async (req, reply) => {
+    if (!isProd) {
+      loadTracks();
+      loadRubrics();
+    }
     const userId = await ensureGuest(req, reply, progress, knownPatterns());
     return progress.getRoadmap(userId);
   });
@@ -177,9 +187,12 @@ await app.register(async (api) => {
 
     const userId = await ensureGuest(req, reply, progress, knownPatterns());
     const session = store.create(problemSlug, rubric, userId);
+    const summary = listProblems().find((problem) => problem.slug === problemSlug);
     return {
       sessionId: session.id,
       coreAsk: rubric.core_ask,
+      title: summary?.title,
+      topic: summary?.topic,
       pattern: rubric.pattern,
       difficulty: rubric.difficulty,
       state: session.context.state,

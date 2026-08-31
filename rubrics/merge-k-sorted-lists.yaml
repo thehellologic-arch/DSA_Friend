@@ -1,0 +1,62 @@
+problem_id: merge-k-sorted-lists
+rubric_version: 1
+pattern: heap
+difficulty: 1700
+core_ask: "Merge k sorted linked lists into one sorted list."
+
+optimal:
+  approach: "Min-heap of the current head of each list (size k). Repeatedly pop the smallest, append it, and push that node's next. Divide-and-conquer pairwise merge is also O(N log k)."
+  complexity: { time: "O(N log k)", space: "O(k)" }
+  key_insight: "You only need the current k candidates; a heap (or tournament of merges) avoids scanning all k lists every time."
+  examples:
+    - input: "[[1,4,5],[1,3,4],[2,6]]"
+      output: "1->1->2->3->4->4->5->6"
+      explanation: "Heap always yields the global next smallest head."
+    - input: "[]"
+      output: "empty"
+      explanation: "No lists."
+    - input: "[[]]"
+      output: "empty"
+      explanation: "One empty list."
+
+acceptable_alternatives:
+  - approach: "Merge lists in pairs (like merge-sort's combine)."
+    note: "Same O(N log k); no heap required."
+
+common_wrong_approaches:
+  - id: flatten_sort
+    match_signals: ["collect all values and sort"]
+    why_wrong: "O(N log N) and ignores that each list is already sorted; also extra arrays."
+    counterexample: "k=2, each list huge — should be O(N log 2)"
+  - id: scan_k_each_time
+    match_signals: ["each step scan all k heads"]
+    why_wrong: "O(N k), too slow for large k."
+    counterexample: "k = 1000, N = 10^5"
+
+required_insights:
+  - id: k_candidates
+    desc: "Maintains the current head of each remaining list as the candidate set"
+    weight: 2
+    hints:
+      - "Where can the next smallest node come from?"
+      - "Only from the k current heads."
+  - id: heap_or_pairwise
+    desc: "Uses a min-heap of heads or pairwise merging to get O(N log k)"
+    weight: 3
+    hints:
+      - "How do you pick the min of k heads faster than O(k)?"
+      - "Min-heap, or merge lists two at a time."
+    on_fail_suggestion: "Don't dump into an array and sort. Heap the k heads (or pairwise merge lists)."
+  - id: complexity
+    desc: "States O(N log k)"
+    weight: 1
+    hints:
+      - "N pops, each log k?"
+      - "Yes."
+
+edge_cases: ["k = 0", "some lists empty", "all empty", "k = 1"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

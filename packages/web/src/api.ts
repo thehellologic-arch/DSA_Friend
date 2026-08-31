@@ -25,11 +25,16 @@ export interface Problem {
   pattern: string;
   difficulty: number;
   coreAsk: string;
+  title?: string;
+  topic?: string;
+  completed?: boolean;
 }
 
 export interface SessionStart {
   sessionId: string;
   coreAsk: string;
+  title?: string;
+  topic?: string;
   pattern: string;
   difficulty: number;
   state: string;
@@ -78,8 +83,23 @@ export interface RoadmapTopic extends TopicProgress {
   levels: RoadmapLevel[];
 }
 
+export interface RoadmapTrackGroup {
+  id: string;
+  title: string;
+  completedCount: number;
+  problemCount: number;
+  problems: Problem[];
+}
+
+export interface RoadmapTrack {
+  id: string;
+  title: string;
+  groups: RoadmapTrackGroup[];
+}
+
 export interface Roadmap {
   skillLevel: SkillLevel;
+  tracks: RoadmapTrack[];
   topics: RoadmapTopic[];
 }
 

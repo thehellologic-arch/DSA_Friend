@@ -1,0 +1,62 @@
+problem_id: serialize-deserialize-btree
+rubric_version: 1
+pattern: tree
+difficulty: 1700
+core_ask: "Design serialize and deserialize that convert a binary tree to a string and back, including null children so the shape is unique."
+
+optimal:
+  approach: "Preorder (or level order) encoding with an explicit null marker, e.g. '1,2,#,#,3,4,#,#,5,#,#'. Deserialize consumes tokens with the same traversal, creating nodes or returning null on '#'."
+  complexity: { time: "O(n)", space: "O(n)" }
+  key_insight: "Without recording nulls, many trees share the same preorder of values; the markers make the encoding invertible."
+  examples:
+    - input: "root = [1,2,3,null,null,4,5]"
+      output: "serialize then deserialize yields an equal tree"
+      explanation: "Preorder 1,2,#,#,3,4,#,#,5,#,# rebuilds the same shape."
+    - input: "root = []"
+      output: "'#' or empty token stream → null"
+      explanation: "One null marker."
+    - input: "root = [1]"
+      output: "'1,#,#'"
+      explanation: "Node plus two empty children."
+
+acceptable_alternatives:
+  - approach: "BFS with nulls, like LeetCode's own array format."
+    note: "Equally valid; trim trailing nulls only if decode still unambiguous."
+
+common_wrong_approaches:
+  - id: values_only
+    match_signals: ["join values inorder", "preorder without nulls"]
+    why_wrong: "Not uniquely decodable."
+    counterexample: "[1,2,3] vs [1,null,2,null,3] need different encodings"
+  - id: json_ids
+    match_signals: ["store Python dict of ids"]
+    why_wrong: "Usually not a portable string format; overkill vs a traversal."
+    counterexample: "Interview expects a traversal codec"
+
+required_insights:
+  - id: encode_nulls
+    desc: "Writes an explicit null sentinel so structure is recovered"
+    weight: 3
+    hints:
+      - "Why isn't a list of values enough?"
+      - "You must mark missing children."
+    on_fail_suggestion: "Preorder (or BFS) with '#' for null. Decode with the same order, consuming tokens."
+  - id: same_order_decode
+    desc: "Rebuilds using the same traversal as serialize"
+    weight: 2
+    hints:
+      - "How does deserialize know left vs right?"
+      - "Recurse in the same order the tokens were written."
+  - id: complexity
+    desc: "States O(n) time and O(n) string size"
+    weight: 1
+    hints:
+      - "Each node and each null child appears?"
+      - "O(n) tokens."
+
+edge_cases: ["empty tree", "skewed", "duplicates values", "single node"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

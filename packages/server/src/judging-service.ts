@@ -7,7 +7,11 @@ import {
   nextTurnAction,
   revealVerdict as createVerdict,
   scanWrongApproaches,
+  scanAcceptableAlternatives,
+  scanTutorIntent,
   synthesizeWrongApproachClassification,
+  synthesizeAcceptableClassification,
+  synthesizeIntentClassification,
   type ClassifyRequest,
   type TurnAction,
   type Verdict,
@@ -100,6 +104,8 @@ export class JudgingService {
 
     const hadWrongBefore = session.context.hadWrongApproach;
     const layer1Match = scanWrongApproaches(message, session.rubric);
+    const altMatch = scanAcceptableAlternatives(message, session.rubric);
+    const tutorIntent = scanTutorIntent(message);
 
     let classification;
     if (layer1Match) {
@@ -108,6 +114,24 @@ export class JudgingService {
         layer1Match,
       );
       session.context.hadWrongApproach = true;
+    } else if (altMatch) {
+      classification = synthesizeAcceptableClassification(
+        session.rubric,
+        altMatch,
+      );
+      session.context.lastAcceptableAlternative = altMatch;
+    } else if (tutorIntent) {
+      classification = synthesizeIntentClassification(
+        session.rubric,
+        tutorIntent,
+      );
+      if (tutorIntent === "pushback") {
+        classification = {
+          ...classification,
+          matchedAcceptableAlternative:
+            session.context.lastAcceptableAlternative,
+        };
+      }
     } else {
       const classifyRequest: ClassifyRequest = {
         coreAsk: session.rubric.core_ask,
@@ -132,9 +156,18 @@ export class JudgingService {
       if (classification.matchedWrongApproach) {
         session.context.hadWrongApproach = true;
       }
+      if (classification.matchedAcceptableAlternative) {
+        session.context.lastAcceptableAlternative =
+          classification.matchedAcceptableAlternative;
+      }
     }
 
-    if (hadWrongBefore && !layer1Match && !classification.matchedWrongApproach) {
+    if (
+      hadWrongBefore &&
+      !layer1Match &&
+      !classification.matchedWrongApproach &&
+      classification.messageKind === "approach"
+    ) {
       session.context.selfCorrections += 1;
     }
 

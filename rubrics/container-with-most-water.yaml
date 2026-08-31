@@ -1,0 +1,62 @@
+problem_id: container-with-most-water
+rubric_version: 1
+pattern: two-pointers
+difficulty: 1250
+core_ask: "Vertical lines at x = i with height height[i] form a container with the x-axis. Return the maximum water area."
+
+optimal:
+  approach: "Start pointers at both ends. Area is min(height[L], height[R]) * (R-L). Move the pointer on the shorter line inward; keep the best area."
+  complexity: { time: "O(n)", space: "O(1)" }
+  key_insight: "Width only shrinks, so the only way to beat the current area is a taller limiting height — discard the current shorter side."
+  examples:
+    - input: "height = [1,8,6,2,5,4,8,3,7]"
+      output: "49"
+      explanation: "Lines at index 1 (h=8) and 8 (h=7) give min(8,7)*7 = 49."
+    - input: "height = [1,1]"
+      output: "1"
+      explanation: "Only one pair: min(1,1)*1 = 1."
+    - input: "height = [4,3,2,1,4]"
+      output: "16"
+      explanation: "The two 4s at the ends: min(4,4)*4 = 16, better than any inner pair."
+
+acceptable_alternatives:
+  - approach: "Check every pair of lines."
+    note: "Correct O(n²); two pointers is the expected linear solution."
+
+common_wrong_approaches:
+  - id: move_taller
+    match_signals: ["move the taller", "advance the higher pointer"]
+    why_wrong: "The taller line is not the bottleneck; moving it can only lose width without raising min height."
+    counterexample: "height = [1,8,6,2,5,4,8,3,7] — moving 8 first misses 49"
+  - id: max_minus_min_index
+    match_signals: ["two tallest bars", "max two heights"]
+    why_wrong: "The two tallest may be adjacent and hold little water."
+    counterexample: "height = [1,100,100,1] vs [5,1,1,5] — ends of 5 win over two 100s that are adjacent"
+
+required_insights:
+  - id: area_formula
+    desc: "Computes area as min(height[L], height[R]) times width R-L"
+    weight: 2
+    hints:
+      - "What limits how high the water can sit between two lines?"
+      - "area = min(h[L], h[R]) * (R - L)."
+  - id: move_shorter
+    desc: "Advances the pointer at the shorter line"
+    weight: 3
+    hints:
+      - "Width always drops. Which pointer could possibly increase the min height?"
+      - "Move the shorter side; the taller one might still be useful."
+    on_fail_suggestion: "Don't test every pair. Start at the ends and always abandon the shorter wall."
+  - id: complexity
+    desc: "States O(n) time and O(1) space"
+    weight: 1
+    hints:
+      - "How many times does each index get visited?"
+      - "Pointers only move inward: O(n) / O(1)."
+
+edge_cases: ["two lines", "strictly increasing", "all equal", "tallest in the middle"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

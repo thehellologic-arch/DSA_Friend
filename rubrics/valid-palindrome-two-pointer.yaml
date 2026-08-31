@@ -1,0 +1,68 @@
+problem_id: valid-palindrome-two-pointer
+rubric_version: 1
+pattern: two-pointers
+difficulty: 800
+core_ask: "After ignoring non-alphanumeric characters and case, is s a palindrome?"
+
+optimal:
+  approach: "Two pointers at ends. Skip non-alphanumeric. Compare lowercased chars; mismatch → false. Pointers meet → true."
+  complexity: { time: "O(n)", space: "O(1)" }
+  key_insight: "You don't need a filtered copy — skip junk in place while checking symmetry."
+  examples:
+    - input: "s = 'A man, a plan, a canal: Panama'"
+      output: "true"
+      explanation: "Alphanumeric core 'amanaplanacanalpanama'."
+    - input: "s = 'race a car'"
+      output: "false"
+      explanation: "'raceacar' is not a palindrome."
+    - input: "s = ' '"
+      output: "true"
+      explanation: "No alphanumeric characters; vacuously true."
+
+acceptable_alternatives:
+  - approach: "Build filtered lowercase string, compare to its reverse."
+    note: "Correct O(n) extra space."
+
+common_wrong_approaches:
+  - id: no_filter
+    match_signals: ["compare raw string to reverse", "include punctuation"]
+    why_wrong: "Punctuation and case must be ignored."
+    counterexample: "'A man, a plan, a canal: Panama'"
+  - id: letters_only_not_digits
+    match_signals: ["skip digits", "isalpha only"]
+    why_wrong: "Digits are alphanumeric and count."
+    counterexample: "'0P' is not a palindrome; 'a0A' is"
+
+required_insights:
+  - id: skip_non_alnum
+    desc: "Ignores characters that are not letters or digits"
+    weight: 2
+    hints:
+      - "Do commas participate?"
+      - "Skip anything not alphanumeric."
+  - id: case_insensitive
+    desc: "Compares case-insensitively"
+    weight: 1
+    hints:
+      - "Is 'A' equal to 'a'?"
+      - "Yes — lowercase both."
+  - id: two_pointers
+    desc: "Checks from both ends (or reverse of a filtered copy)"
+    weight: 2
+    hints:
+      - "How do you test palindrome without extra string?"
+      - "Left and right pointers, skip, compare."
+    on_fail_suggestion: "Two pointers, skip non-alnum, compare lowercased. Don't reverse the raw string."
+  - id: complexity
+    desc: "States O(n) time, O(1) extra if in-place skip"
+    weight: 1
+    hints:
+      - "Extra array?"
+      - "Not required."
+
+edge_cases: ["empty/spaces only", "single char", "digits", "mixed case"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

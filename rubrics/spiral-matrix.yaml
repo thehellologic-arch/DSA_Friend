@@ -1,0 +1,62 @@
+problem_id: spiral-matrix
+rubric_version: 1
+pattern: matrix
+difficulty: 1300
+core_ask: "Return all elements of an m x n matrix in spiral order (clockwise from top-left)."
+
+optimal:
+  approach: "Keep bounds top, bottom, left, right. Walk right, down, left, up, shrinking the box after each side. Stop when bounds cross."
+  complexity: { time: "O(m n)", space: "O(1)" }
+  key_insight: "Each layer is a rectangle of four directed walks; after a walk you drop that row or column from the remaining box."
+  examples:
+    - input: "[[1,2,3],[4,5,6],[7,8,9]]"
+      output: "[1,2,3,6,9,8,7,4,5]"
+      explanation: "Outer ring then center 5."
+    - input: "[[1,2,3,4],[5,6,7,8],[9,10,11,12]]"
+      output: "[1,2,3,4,8,12,11,10,9,5,6,7]"
+      explanation: "Wide rectangle; last inner row is 6,7."
+    - input: "[[7]]"
+      output: "[7]"
+      explanation: "Single cell."
+
+acceptable_alternatives:
+  - approach: "Simulate direction vectors with a visited matrix, turn right when the next cell is blocked."
+    note: "Correct O(mn) extra visited space; bounds method is O(1) extra."
+
+common_wrong_approaches:
+  - id: square_only
+    match_signals: ["assume n x n", "layers = n/2 only"]
+    why_wrong: "Matrices can be rectangular; leftover is a single row or column."
+    counterexample: "1 x 4 matrix"
+  - id: double_count_corners
+    match_signals: ["include corners twice"]
+    why_wrong: "Each corner belongs to one side's walk."
+    counterexample: "2x2 would list 1,2,2,4,... if corners repeat"
+
+required_insights:
+  - id: shrinking_bounds
+    desc: "Maintains top/bottom/left/right and shrinks after each side"
+    weight: 3
+    hints:
+      - "How do you know the next ring?"
+      - "A bounding box that tightens after each traversal."
+    on_fail_suggestion: "Walk four sides of a shrinking rectangle; check bounds so you don't reprint a single remaining row twice."
+  - id: avoid_double_pass
+    desc: "Does not traverse a row/col twice when only one row or one col remains"
+    weight: 2
+    hints:
+      - "After walking right on the last remaining row, should you walk left?"
+      - "Only if top <= bottom still holds after shrinking."
+  - id: complexity
+    desc: "States O(mn) time"
+    weight: 1
+    hints:
+      - "Each cell once?"
+      - "Yes."
+
+edge_cases: ["1xn", "mx1", "2x2", "empty"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

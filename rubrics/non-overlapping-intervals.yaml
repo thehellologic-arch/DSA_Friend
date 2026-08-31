@@ -1,0 +1,62 @@
+problem_id: non-overlapping-intervals
+rubric_version: 1
+pattern: greedy
+difficulty: 1400
+core_ask: "Return the minimum number of intervals to remove so the rest are non-overlapping."
+
+optimal:
+  approach: "Sort by end time. Greedily keep an interval if it starts at or after the last kept end; otherwise remove it (increment count). Min removals = n - max number kept."
+  complexity: { time: "O(n log n)", space: "O(1)" }
+  key_insight: "Keeping the interval that finishes first leaves the most room — same as activity selection — so removals are whatever you skip."
+  examples:
+    - input: "intervals = [[1,2],[2,3],[3,4],[1,3]]"
+      output: "1"
+      explanation: "Remove [1,3]; the other three only touch at endpoints."
+    - input: "intervals = [[1,2],[1,2],[1,2]]"
+      output: "2"
+      explanation: "Keep one; remove two copies."
+    - input: "intervals = [[1,2],[2,3]]"
+      output: "0"
+      explanation: "Already non-overlapping if touching is allowed."
+
+acceptable_alternatives:
+  - approach: "DP longest non-overlapping chain after sort (LIS-style)."
+    note: "Correct O(n²); greedy is O(n log n) and optimal."
+
+common_wrong_approaches:
+  - id: sort_by_start
+    match_signals: ["sort by start", "remove later start"]
+    why_wrong: "A long early interval sorted first can force extra removals vs earliest-end."
+    counterexample: "[[1,10],[2,3],[3,4]] — sort-by-start keeping [1,10] removes 2; earliest-end keeps two short ones, removes 1"
+  - id: remove_longest
+    match_signals: ["delete longest first"]
+    why_wrong: "Length is not the right greedy key."
+    counterexample: "[[1,5],[4,6],[6,7]]"
+
+required_insights:
+  - id: equivalent_to_max_keep
+    desc: "Min removals = n minus size of a maximum non-overlapping subset"
+    weight: 2
+    hints:
+      - "Is it easier to choose what to keep?"
+      - "Yes — activity selection; removals are the rest."
+  - id: sort_by_end
+    desc: "Sorts by end time and greedily keeps non-overlapping next"
+    weight: 3
+    hints:
+      - "Which interval should you commit to first?"
+      - "The one that ends earliest."
+    on_fail_suggestion: "Sort by end, keep if start >= lastEnd, count the ones you skip."
+  - id: complexity
+    desc: "States O(n log n)"
+    weight: 1
+    hints:
+      - "Dominated by?"
+      - "Sort."
+
+edge_cases: ["all overlap", "already disjoint", "identical intervals", "touching endpoints"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

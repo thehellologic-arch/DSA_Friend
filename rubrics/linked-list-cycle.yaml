@@ -1,0 +1,62 @@
+problem_id: linked-list-cycle
+rubric_version: 1
+pattern: linked-list
+difficulty: 900
+core_ask: "Return whether a singly linked list contains a cycle."
+
+optimal:
+  approach: "Floyd: slow moves one, fast moves two. If they meet, there is a cycle. If fast hits null, no cycle."
+  complexity: { time: "O(n)", space: "O(1)" }
+  key_insight: "In a cycle the faster pointer laps the slower; if the list ends, fast reaches null."
+  examples:
+    - input: "1 -> 2 -> 3 -> 2 (cycle at 2)"
+      output: "true"
+      explanation: "fast eventually meets slow inside the loop."
+    - input: "1 -> 2 -> 3 -> null"
+      output: "false"
+      explanation: "fast reaches the end."
+    - input: "single node pointing to itself"
+      output: "true"
+      explanation: "slow and fast meet immediately on the self-loop."
+
+acceptable_alternatives:
+  - approach: "Hash set of seen nodes."
+    note: "Correct O(n) space; Floyd is the O(1) space solution."
+
+common_wrong_approaches:
+  - id: value_equals
+    match_signals: ["duplicate values mean cycle"]
+    why_wrong: "Values can repeat without a cycle; the cycle is pointer identity."
+    counterexample: "1 -> 1 -> null (two nodes with val 1)"
+  - id: only_self_loop
+    match_signals: ["check node.next == node"]
+    why_wrong: "Longer cycles never have next == self."
+    counterexample: "A -> B -> A"
+
+required_insights:
+  - id: two_speed
+    desc: "Uses slow/fast pointers (or an O(n) set of node identities)"
+    weight: 3
+    hints:
+      - "How do you detect a loop with constant extra memory?"
+      - "Tortoise and hare: +1 and +2."
+    on_fail_suggestion: "Don't hash values. Either store node references or use Floyd slow/fast."
+  - id: null_means_no_cycle
+    desc: "Treats fast or fast.next being null as acyclic"
+    weight: 1
+    hints:
+      - "When do you stop?"
+      - "When there is no room for a two-step."
+  - id: complexity
+    desc: "States O(n) time and O(1) space for Floyd"
+    weight: 1
+    hints:
+      - "Why O(1) space?"
+      - "Two pointers only."
+
+edge_cases: ["empty", "one node no cycle", "two-node cycle", "cycle not at head"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

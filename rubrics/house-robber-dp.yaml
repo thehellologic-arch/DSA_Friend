@@ -1,0 +1,62 @@
+problem_id: house-robber-dp
+rubric_version: 1
+pattern: dynamic-programming
+difficulty: 1100
+core_ask: "Houses in a line each hold money. Adjacent houses cannot both be robbed. Return the maximum amount."
+
+optimal:
+  approach: "dp[i] = max(dp[i-1], dp[i-2] + nums[i]). Roll two variables: skip vs take."
+  complexity: { time: "O(n)", space: "O(1)" }
+  key_insight: "At house i you either skip it (keep previous best) or rob it and add to the best from two houses back."
+  examples:
+    - input: "nums = [1,2,3,1]"
+      output: "4"
+      explanation: "Rob house 1 and 3 (1+3); 2+1 is worse."
+    - input: "nums = [2,7,9,3,1]"
+      output: "12"
+      explanation: "2+9+1; taking 7+3 is only 10."
+    - input: "nums = [2,1]"
+      output: "2"
+      explanation: "Take the larger of the two adjacent houses."
+
+acceptable_alternatives:
+  - approach: "Explicit dp array of size n."
+    note: "Correct; can compress to O(1) space."
+
+common_wrong_approaches:
+  - id: take_all_odd_or_even
+    match_signals: ["all even indices", "all odd indices"]
+    why_wrong: "The optimal subset is not always a single parity."
+    counterexample: "nums = [2,1,1,2] — even+even or odd+odd is 3, but index 0 and 3 yield 4"
+  - id: greedy_largest
+    match_signals: ["always rob the current max", "sort houses"]
+    why_wrong: "Taking the global max can block two neighbors that sum to more."
+    counterexample: "nums = [2,100,2] vs [4,1,4] — for [4,1,4] skip the 1"
+
+required_insights:
+  - id: take_or_skip
+    desc: "Chooses rob i + best(i-2) versus skip i"
+    weight: 3
+    hints:
+      - "If you rob this house, which house is now forbidden?"
+      - "best[i] = max(best[i-1], best[i-2] + nums[i])."
+    on_fail_suggestion: "Don't alternate blindly. DP take-or-skip with a gap of one house."
+  - id: linear_houses
+    desc: "Processes houses left to right (or right to left) as a chain"
+    weight: 1
+    hints:
+      - "Is there a cycle?"
+      - "No — a simple line, so the recurrence has no wrap-around."
+  - id: complexity
+    desc: "States O(n) time and O(1) space"
+    weight: 1
+    hints:
+      - "Need an n-array?"
+      - "Two rolling scalars suffice."
+
+edge_cases: ["one house", "two houses", "zeros", "all equal"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

@@ -1,0 +1,69 @@
+problem_id: word-search-ii-trie
+rubric_version: 1
+pattern: trie
+difficulty: 1900
+core_ask: "Given a board and a list of words, return all words that can be formed by 4-adjacent unused cells (Word Search I for many words)."
+
+optimal:
+  approach: "Build a trie of the word list. DFS from every cell, walking the trie; mark board cells visited. When a trie node is a word end, add it and optionally unmark isEnd (or delete the node) to avoid duplicates. Prune dead trie branches."
+  complexity: { time: "O(m n * 4^L)", space: "O(total dictionary chars)" }
+  key_insight: "A trie shares prefixes so one board DFS tests many words at once instead of restarting Word Search I per word."
+  examples:
+    - input: "board = [['o','a','a','n'],['e','t','a','e'],['i','h','k','r'],['i','f','l','v']], words = ['oath','pea','eat','rain']"
+      output: "['eat','oath']"
+      explanation: "Trie DFS finds oath and eat; pea/rain are absent."
+    - input: "board = [['a','b'],['c','d']], words = ['abcb']"
+      output: "[]"
+      explanation: "Would reuse b; invalid."
+    - input: "board = [['a']], words = ['a']"
+      output: "['a']"
+      explanation: "Single cell."
+
+acceptable_alternatives:
+  - approach: "Run Word Search I for each word."
+    note: "Correct but TLE when words is large; trie is the expected optimization."
+
+common_wrong_approaches:
+  - id: per_word_dfs
+    match_signals: ["for each word independently DFS the board"]
+    why_wrong: "Repeats work across shared prefixes; often TLE."
+    counterexample: "Thousands of words with similar prefixes"
+  - id: reuse_cells
+    match_signals: ["don't mark visited"]
+    why_wrong: "Same cell used twice in one word."
+    counterexample: "abcb on 2x2"
+
+required_insights:
+  - id: trie_of_words
+    desc: "Inserts the dictionary into a trie so prefixes are shared"
+    weight: 3
+    hints:
+      - "How do you search many words in one board walk?"
+      - "Shared prefixes should not restart a full board DFS per word."
+      - "Walk a trie in parallel with the DFS path."
+    on_fail_suggestion: "Don't DFS once per word. Build a trie, DFS the board while following trie nodes, collect isEnd words."
+  - id: board_backtrack
+    desc: "Marks/unmarks cells so a path cannot reuse a square"
+    weight: 2
+    hints:
+      - "Same as Word Search I visiting?"
+      - "Yes — mutate or visited, then restore."
+  - id: dedup
+    desc: "Avoids reporting the same word twice (clear isEnd or use a set)"
+    weight: 1
+    hints:
+      - "The same word can be found from two starts."
+      - "Add to a set, or null out the stored word on first find."
+  - id: complexity
+    desc: "States board search bounded by 4^L with trie pruning"
+    weight: 1
+    hints:
+      - "Starts?"
+      - "mn starts, branching ≤ 4, pruned by the trie."
+
+edge_cases: ["duplicate words in list", "empty words", "word longer than path possible", "all cells same letter"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

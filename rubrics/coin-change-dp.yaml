@@ -1,0 +1,69 @@
+problem_id: coin-change-dp
+rubric_version: 1
+pattern: dynamic-programming
+difficulty: 1450
+core_ask: "Given coin denominations and an amount, return the fewest coins that sum to amount, or -1 if impossible. Order does not matter; coins are unlimited."
+
+optimal:
+  approach: "Unbounded knapsack DP: dp[x] = min over coins c of dp[x-c] + 1, with dp[0]=0 and the rest INF. Answer dp[amount] or -1."
+  complexity: { time: "O(amount * coins)", space: "O(amount)" }
+  key_insight: "The optimal for amount x is 1 coin plus the optimal for x minus that coin; overlapping sub-amounts must be memoized."
+  examples:
+    - input: "coins = [1,2,5], amount = 11"
+      output: "3"
+      explanation: "5+5+1; DP fills 0..11, and 11 gets 3."
+    - input: "coins = [2], amount = 3"
+      output: "-1"
+      explanation: "Odd amount cannot be made from even coins; dp[3] stays INF."
+    - input: "coins = [1], amount = 0"
+      output: "0"
+      explanation: "Zero amount needs zero coins."
+
+acceptable_alternatives:
+  - approach: "BFS from 0, each edge adding one coin; first time you reach amount is fewest coins."
+    note: "Correct; same complexity flavor, often cleaner for 'shortest path in value space'."
+
+common_wrong_approaches:
+  - id: greedy_largest
+    match_signals: ["always take largest", "greedy coin"]
+    why_wrong: "US coins are canonical; arbitrary denominations are not."
+    counterexample: "coins = [1,3,4], amount = 6 — greedy 4+1+1 is 3 coins, but 3+3 is 2"
+  - id: combinations_not_min
+    match_signals: ["count number of combinations", "coin change 2"]
+    why_wrong: "This problem wants the minimum count, not how many ways."
+    counterexample: "coins = [1,2,5], amount = 11 — ways is many, answer is 3"
+
+required_insights:
+  - id: subamount_min
+    desc: "Defines dp[x] as fewest coins to make x"
+    weight: 3
+    hints:
+      - "What smaller problem do you solve before amount?"
+      - "If the last coin is c, the remaining amount is x-c — take min over every c."
+      - "dp[x] = min(dp[x-c] + 1) over coins c <= x."
+    on_fail_suggestion: "Greedy fails. DP every amount from 0 to target as a min-over-coins recurrence."
+  - id: unbounded
+    desc: "Allows using the same coin more than once"
+    weight: 1
+    hints:
+      - "Can you reuse a denomination?"
+      - "Yes — inner loop over coins for every amount (unbounded knapsack)."
+  - id: impossible_neg_one
+    desc: "Returns -1 when dp[amount] is never updated from INF"
+    weight: 1
+    hints:
+      - "How do you know the amount is impossible?"
+      - "If dp[amount] is still infinity, return -1."
+  - id: complexity
+    desc: "States O(amount * len(coins)) time"
+    weight: 1
+    hints:
+      - "What are the two nested loops?"
+      - "Each of `amount` states tries each coin."
+
+edge_cases: ["amount 0", "impossible amount", "coin larger than amount", "single coin equals amount"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

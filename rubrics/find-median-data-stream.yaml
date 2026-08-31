@@ -1,0 +1,69 @@
+problem_id: find-median-data-stream
+rubric_version: 1
+pattern: heap
+difficulty: 1800
+core_ask: "Design a structure that accepts integers over time and returns the median after each query (average of two middles if even count)."
+
+optimal:
+  approach: "Two heaps: max-heap lo (smaller half) and min-heap hi (larger half). Insert into lo, then move lo's max to hi; if hi is bigger, move hi's min back. Balance so lo has n/2 or (n+1)/2. Median is lo.top or average of both tops."
+  complexity: { time: "O(log n) add, O(1) find", space: "O(n)" }
+  key_insight: "The median sits at the boundary of the lower and upper halves; two heaps maintain that boundary in log n."
+  examples:
+    - input: "add 1; add 2; findMedian; add 3; findMedian"
+      output: "1.5 then 2"
+      explanation: "After 1,2 the halves are [1] and [2]; after 3, lo=[1,2] hi=[3] or lo=[2] hi=[3] with 1 in lo — median 2."
+    - input: "add 6; findMedian"
+      output: "6"
+      explanation: "Single element lives in lo."
+    - input: "stream 5,15,1,3"
+      output: "medians 5, 10, 5, 4"
+      explanation: "Two-heap invariant after each insert."
+
+acceptable_alternatives:
+  - approach: "Sorted list / insertion sort on an array."
+    note: "O(n) insert; acceptable only if they note two heaps are faster."
+
+common_wrong_approaches:
+  - id: sort_every_query
+    match_signals: ["append and sort each findMedian"]
+    why_wrong: "O(n log n) per query."
+    counterexample: "10^5 mixed add/find operations"
+  - id: one_heap
+    match_signals: ["only a max heap of all", "only min heap"]
+    why_wrong: "You cannot get the middle in O(1); you only see min or max."
+    counterexample: "Need both halves"
+
+required_insights:
+  - id: two_halves
+    desc: "Splits numbers into a lower half and upper half"
+    weight: 2
+    hints:
+      - "Where does the median live in a sorted view?"
+      - "At the end of the small half and/or start of the large half."
+  - id: two_heaps
+    desc: "Uses a max-heap for the lower half and a min-heap for the upper half, rebalancing sizes"
+    weight: 3
+    hints:
+      - "Which heap data structures give you those two boundary values?"
+      - "You need the largest of the small half and the smallest of the large half after every insert."
+      - "Max-heap of lows, min-heap of highs; keep sizes equal or lo one bigger."
+    on_fail_suggestion: "Don't sort the whole stream. Two heaps: max-heap lower, min-heap upper, rebalance, median from the tops."
+  - id: even_average
+    desc: "Averages the two middle values when the count is even"
+    weight: 1
+    hints:
+      - "Even n?"
+      - "mean of lo.top and hi.top."
+  - id: complexity
+    desc: "States O(log n) add and O(1) median"
+    weight: 1
+    hints:
+      - "Heap insert?"
+      - "O(log n) add, O(1) peek."
+
+edge_cases: ["one element", "even vs odd", "negatives", "duplicates", "already sorted stream"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

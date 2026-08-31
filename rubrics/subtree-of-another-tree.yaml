@@ -1,0 +1,62 @@
+problem_id: subtree-of-another-tree
+rubric_version: 1
+pattern: tree
+difficulty: 1300
+core_ask: "Return whether subRoot is a subtree of root (a node in root plus all descendants equals subRoot)."
+
+optimal:
+  approach: "For every node in root, test isSameTree(node, subRoot). Short-circuit on true. Optional: serialize both with nulls and search substring, careful with token boundaries."
+  complexity: { time: "O(m n)", space: "O(h)" }
+  key_insight: "Subtree means identical structure and values from some node, not merely that the values appear somewhere."
+  examples:
+    - input: "root = [3,4,5,1,2], subRoot = [4,1,2]"
+      output: "true"
+      explanation: "The left child of 3 matches subRoot exactly."
+    - input: "root = [3,4,5,1,2,null,null,null,null,0], subRoot = [4,1,2]"
+      output: "false"
+      explanation: "Extra 0 under 2, so not the same tree."
+    - input: "root = [1,1], subRoot = [1]"
+      output: "true"
+      explanation: "A leaf (or either 1) matches a single-node subRoot."
+
+acceptable_alternatives:
+  - approach: "Merkle / serialization of every subtree hashed, compare hashes."
+    note: "O(n) expected; mention collision handling."
+
+common_wrong_approaches:
+  - id: values_subset
+    match_signals: ["all subRoot values appear in root"]
+    why_wrong: "Need a connected identical shape, not a value subset."
+    counterexample: "root [1,2,3] subRoot [1,null,3] is false"
+  - id: same_root_only
+    match_signals: ["only compare at the root"]
+    why_wrong: "The match may start deeper."
+    counterexample: "subRoot equals a left subtree"
+
+required_insights:
+  - id: same_tree_at_node
+    desc: "Uses identity comparison (same-tree) starting at some node of root"
+    weight: 3
+    hints:
+      - "When do you accept a node as the subtree root?"
+      - "When that node and subRoot are the same tree."
+    on_fail_suggestion: "Walk root; at each node run same-tree vs subRoot. Don't just check values."
+  - id: search_all
+    desc: "Tries matches not only at root but at every node (or DFS || recurse children)"
+    weight: 2
+    hints:
+      - "If the roots differ, are you done?"
+      - "No — try left and right of root."
+  - id: complexity
+    desc: "States O(m n) worst case for naive same-tree at each node"
+    weight: 1
+    hints:
+      - "n nodes in root, m in subRoot?"
+      - "O(n m) comparisons worst case."
+
+edge_cases: ["subRoot empty if allowed", "identical trees", "extra descendant", "duplicate values"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

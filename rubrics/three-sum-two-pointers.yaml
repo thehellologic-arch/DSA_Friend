@@ -1,0 +1,69 @@
+problem_id: three-sum-two-pointers
+rubric_version: 1
+pattern: two-pointers
+difficulty: 1500
+core_ask: "Find all unique triplets that sum to 0. Each triplet should be listed once, regardless of order."
+
+optimal:
+  approach: "Sort. Fix one number, then two-pointer search for a pair that sums to its negation. Skip duplicate values at all three roles."
+  complexity: { time: "O(n²)", space: "O(1)" }
+  key_insight: "After sorting, two-sum becomes two pointers, and skipping equal neighbors removes duplicate triplets without a set of tuples."
+  examples:
+    - input: "nums = [-1,0,1,2,-1,-4]"
+      output: "[[-1,-1,2],[-1,0,1]]"
+      explanation: "Sort to [-4,-1,-1,0,1,2]; fixing -1 finds both (-1,2) and (0,1), and the second -1 is skipped as a duplicate fix."
+    - input: "nums = [0,1,1]"
+      output: "[]"
+      explanation: "Sorted [0,1,1]; no pair sums to 0 with the remaining values."
+    - input: "nums = [0,0,0]"
+      output: "[[0,0,0]]"
+      explanation: "One unique triplet; extra zeros are skipped after recording it."
+
+acceptable_alternatives:
+  - approach: "Fix i, hash-set two-sum for the rest, plus a set of sorted triplets."
+    note: "Correct O(n²) but extra memory and messier dedup; two pointers after sort is cleaner."
+
+common_wrong_approaches:
+  - id: nested_three
+    match_signals: ["three nested loops", "check all triples"]
+    why_wrong: "O(n³) and still needs dedup."
+    counterexample: "n = 3000"
+  - id: no_dedup
+    match_signals: ["no skip duplicates", "hash every pair without sorting"]
+    why_wrong: "The same three values are reported many times in different orders."
+    counterexample: "nums = [-1,-1,0,1,1] without skipping yields repeated [-1,0,1]"
+
+required_insights:
+  - id: sort_first
+    desc: "Sorts so two pointers and duplicate skipping work"
+    weight: 2
+    hints:
+      - "What precondition makes two-sum linear and duplicates obvious?"
+      - "Sort the array first."
+  - id: fix_and_two_sum
+    desc: "Fixes one index and two-sums the remainder to 0"
+    weight: 3
+    hints:
+      - "Can you reduce 3-sum to a problem you already know?"
+      - "After sorting, the other two numbers that cancel nums[i] can be found without a hash set."
+      - "For each i, find two later values that sum to -nums[i]."
+    on_fail_suggestion: "Don't enumerate every triple. Sort, lock one number, two-pointer the rest to the complementary sum."
+  - id: skip_duplicates
+    desc: "Skips equal values for the fixed index and both pointers"
+    weight: 2
+    hints:
+      - "How do duplicate numbers create duplicate triplets?"
+      - "After using a value, advance past neighbors equal to it."
+  - id: complexity
+    desc: "States O(n²) time"
+    weight: 1
+    hints:
+      - "n choices for the fixed index, linear two-sum each — total?"
+      - "O(n²) after an O(n log n) sort."
+
+edge_cases: ["all zeros", "fewer than 3 elements", "many duplicates", "no solution"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

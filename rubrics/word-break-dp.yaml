@@ -1,0 +1,68 @@
+problem_id: word-break-dp
+rubric_version: 1
+pattern: dynamic-programming
+difficulty: 1450
+core_ask: "Given a string s and a dictionary of words, return whether s can be segmented into a space-separated sequence of dictionary words (reuse allowed)."
+
+optimal:
+  approach: "dp[i] means s[0..i) can be segmented. dp[0]=true. For each i, try a word (or a cut j < i) such that dp[j] and s[j..i) is in the dict."
+  complexity: { time: "O(n²)", space: "O(n)" }
+  key_insight: "If a prefix is breakable and the next piece is a dict word, the longer prefix is breakable — classic boolean DP on prefixes."
+  examples:
+    - input: "s = 'leetcode', wordDict = ['leet','code']"
+      output: "true"
+      explanation: "dp becomes true at 4 after 'leet', then true at 8 after 'code'."
+    - input: "s = 'applepenapple', wordDict = ['apple','pen']"
+      output: "true"
+      explanation: "Reuse 'apple'; dp true at 5, 8, 13."
+    - input: "s = 'catsandog', wordDict = ['cats','dog','sand','and','cat']"
+      output: "false"
+      explanation: "Every segmentation leaves a leftover that is not a word."
+
+acceptable_alternatives:
+  - approach: "DFS/BFS from index 0 with memo on start index, matching dict words."
+    note: "Correct; equivalent to the DP. A set of words makes lookups O(length)."
+
+common_wrong_approaches:
+  - id: greedy_first_match
+    match_signals: ["always take longest prefix", "greedy first word"]
+    why_wrong: "The first matching word can block the only valid split."
+    counterexample: "s = 'aaaaaaa', dict = ['aaaa','aaa'] — greedy 4+3 works or 3+4; some greedy 4-only leftovers fail depending on implementation"
+  - id: concatenation_once
+    match_signals: ["each dict word at most once", "permutation of dict"]
+    why_wrong: "Words may be reused; not every dict word must be used."
+    counterexample: "applepenapple with apple used twice"
+
+required_insights:
+  - id: prefix_boolean
+    desc: "dp[i] = whether the prefix of length i can be segmented"
+    weight: 3
+    hints:
+      - "What smaller question about s lets you answer the whole string?"
+      - "Can s[0..i) be made from dict words?"
+    on_fail_suggestion: "Don't greedy-match the first word. Mark every breakable prefix, then try dict words at those cuts."
+  - id: reuse_words
+    desc: "Allows using dictionary words any number of times"
+    weight: 1
+    hints:
+      - "May apple appear twice?"
+      - "Yes; the dict is a word set, not a bag you consume."
+  - id: dict_lookup
+    desc: "Checks candidate substrings against a hash set of words"
+    weight: 1
+    hints:
+      - "How do you test a piece quickly?"
+      - "Put wordDict in a set; optionally cap by max word length."
+  - id: complexity
+    desc: "States O(n²) (or O(n * m * L)) time"
+    weight: 1
+    hints:
+      - "Cuts times word lengths?"
+      - "O(n) starts, O(n) ends, substring/hash work."
+
+edge_cases: ["s empty", "word longer than s", "overlapping words", "impossible leftover"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

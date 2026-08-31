@@ -1,0 +1,68 @@
+problem_id: reorder-list
+rubric_version: 1
+pattern: linked-list
+difficulty: 1450
+core_ask: "Reorder a list L0→L1→…→Ln to L0→Ln→L1→Ln-1→… in place."
+
+optimal:
+  approach: "Find mid with slow/fast. Reverse the second half. Merge the two halves by alternating nodes."
+  complexity: { time: "O(n)", space: "O(1)" }
+  key_insight: "The second half reversed is exactly the sequence of nodes you want to weave in."
+  examples:
+    - input: "1->2->3->4"
+      output: "1->4->2->3"
+      explanation: "Mid split 1->2 and 3->4; reverse second to 4->3; weave."
+    - input: "1->2->3->4->5"
+      output: "1->5->2->4->3"
+      explanation: "Second half reverse 5->4->3; weave onto 1->2."
+    - input: "1"
+      output: "1"
+      explanation: "Nothing to reorder."
+
+acceptable_alternatives:
+  - approach: "Push nodes into an array/deque and rebuild by popping front/back."
+    note: "Correct O(n) extra space; the three-step pointer method is O(1) space."
+
+common_wrong_approaches:
+  - id: values_swap
+    match_signals: ["swap values not pointers"]
+    why_wrong: "Usually you must reorder nodes; also odd-length mids get messy."
+    counterexample: "Follow-up: node objects must move, values stay with nodes"
+  - id: extra_list_only
+    match_signals: ["build a new list from ends without reverse-mid"]
+    why_wrong: "Uses extra nodes or extra memory and isn't the in-place pattern."
+    counterexample: "O(1) space constraint"
+
+required_insights:
+  - id: find_mid
+    desc: "Splits the list at the midpoint with slow/fast"
+    weight: 2
+    hints:
+      - "How do you cut the second half?"
+      - "Slow/fast; disconnect mid.next."
+  - id: reverse_second
+    desc: "Reverses the second half in place"
+    weight: 2
+    hints:
+      - "Which nodes should come next after head?"
+      - "The old tail, so reverse the back half."
+  - id: weave
+    desc: "Alternates nodes from first half and reversed second half"
+    weight: 3
+    hints:
+      - "How do you interleave without losing pointers?"
+      - "Save both nexts, first.next = second, second.next = firstNext."
+    on_fail_suggestion: "Midpoint, reverse second half, then weave. Don't use an extra array unless you mention O(n) space."
+  - id: complexity
+    desc: "States O(n) time, O(1) space"
+    weight: 1
+    hints:
+      - "Three linear passes?"
+      - "Yes, constant extra pointers."
+
+edge_cases: ["one node", "two nodes", "odd length", "even length"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

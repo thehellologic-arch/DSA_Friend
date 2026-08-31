@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import type { Verdict } from "@reason/core";
+import { MAX_HINTS_PER_SESSION } from "@reason/core";
 import {
   fetchAttempts,
   fetchProblems,
@@ -275,6 +276,7 @@ export default function PracticeScreen({
       {screen === "start" && problem && (
         <div className="card">
           <span className="badge">Boss · Reasoning</span>
+          {problem.title && <h2 className="roadmap-pattern">{problem.title}</h2>}
           <p className="core-ask">{problem.coreAsk}</p>
           <p className="meta">
             {problem.pattern} · {problem.difficulty} · ~2 min · text reply
@@ -341,7 +343,7 @@ export default function PracticeScreen({
             {verdictPlacement
               ? "Ask follow-up questions below · score is final"
               : hintsUsed > 0
-                ? `hint ${hintsUsed} of 3 used`
+                ? `hint ${hintsUsed} of ${MAX_HINTS_PER_SESSION} used`
                 : "follow-ups don't count as hints"}
           </p>
 

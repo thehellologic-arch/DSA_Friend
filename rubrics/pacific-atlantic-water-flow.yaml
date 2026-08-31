@@ -1,0 +1,68 @@
+problem_id: pacific-atlantic-water-flow
+rubric_version: 1
+pattern: graph
+difficulty: 1650
+core_ask: "A height grid drains to Pacific (top/left) and Atlantic (bottom/right) if water can flow to equal-or-lower neighbors. Return cells that can reach both oceans."
+
+optimal:
+  approach: "Reverse the flow: multi-source BFS/DFS from Pacific border cells and from Atlantic border cells, walking to neighbors that are >= current height. Intersect the two reachable sets."
+  complexity: { time: "O(m n)", space: "O(m n)" }
+  key_insight: "Forward search from every cell is too slow; searching uphill from the oceans visits each cell a constant number of times."
+  examples:
+    - input: "heights = [[1,2,2,3,5],[3,2,3,4,4],[2,4,5,3,1],[6,7,1,4,5],[5,1,1,2,4]]"
+      output: "[[0,4],[1,3],[1,4],[2,2],[3,0],[3,1],[4,0]]"
+      explanation: "Those cells are marked by both ocean searches."
+    - input: "heights = [[1]]"
+      output: "[[0,0]]"
+      explanation: "The single cell touches both oceans."
+    - input: "heights = [[2,1],[1,2]]"
+      output: "[[0,0],[0,1],[1,0],[1,1]]"
+      explanation: "Every cell can reach both borders via non-increasing reverse (i.e. uphill from ocean) paths."
+
+acceptable_alternatives:
+  - approach: "DFS from each cell toward both oceans with memo of (i,j,ocean)."
+    note: "Can be O(mn) with memo; easy to accidentally go exponential without it."
+
+common_wrong_approaches:
+  - id: only_downhill_from_each
+    match_signals: ["DFS from every cell to ocean", "no reverse search"]
+    why_wrong: "O((mn)²) in the worst case."
+    counterexample: "A large monotonically decreasing grid"
+  - id: strict_less
+    match_signals: ["must be strictly lower", "cannot flow equal"]
+    why_wrong: "The problem allows flow to equal height."
+    counterexample: "A flat grid should send every cell to both oceans"
+
+required_insights:
+  - id: reverse_from_oceans
+    desc: "Searches from ocean borders inland instead of from every cell seaward"
+    weight: 3
+    hints:
+      - "Who is the source if you flip the edges?"
+      - "Start from Pacific-touching cells and Atlantic-touching cells."
+    on_fail_suggestion: "Don't flood from every cell. BFS uphill from both ocean borders and intersect."
+  - id: geq_height
+    desc: "Moves to a neighbor only when neighbor height >= current (reverse of downhill flow)"
+    weight: 2
+    hints:
+      - "If water flows downhill or equal, what is the reverse edge?"
+      - "From ocean, walk to cells that are taller or equal."
+  - id: intersection
+    desc: "Returns cells reachable from both searches"
+    weight: 2
+    hints:
+      - "How do you combine the two visited matrices?"
+      - "Cell is an answer iff pacific[i][j] and atlantic[i][j]."
+  - id: complexity
+    desc: "States O(m n) time"
+    weight: 1
+    hints:
+      - "Each cell enqueued how often?"
+      - "At most twice (once per ocean): O(mn)."
+
+edge_cases: ["1x1", "1xn strip", "all equal heights", "strict peak in the center"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

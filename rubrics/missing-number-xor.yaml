@@ -1,0 +1,64 @@
+problem_id: missing-number-xor
+rubric_version: 1
+pattern: bit-manipulation
+difficulty: 900
+core_ask: "Array nums holds n distinct numbers from the range [0, n]. Return the one value that is missing."
+
+optimal:
+  approach: "XOR all indices 0..n with all values in nums. Pairs cancel; the missing number remains. Gauss sum n(n+1)/2 minus array sum also works."
+  complexity: { time: "O(n)", space: "O(1)" }
+  key_insight: "Every number in 0..n except the missing one appears twice (once as an index, once as a value), so XOR isolates it."
+  examples:
+    - input: "nums = [3,0,1]"
+      output: "2"
+      explanation: "XOR of 0^1^2^3 with 3^0^1 leaves 2."
+    - input: "nums = [0,1]"
+      output: "2"
+      explanation: "Range is [0,2]; 2 never appears."
+    - input: "nums = [9,6,4,2,3,5,7,0,1]"
+      output: "8"
+      explanation: "All of 0..9 except 8 cancel."
+
+acceptable_alternatives:
+  - approach: "expected_sum - actual_sum"
+    note: "Correct O(n)/O(1); watch overflow in fixed-width languages. XOR avoids overflow."
+  - approach: "Sort and find the gap, or put in a set."
+    note: "Correct but extra log n or extra space."
+
+common_wrong_approaches:
+  - id: assume_sorted
+    match_signals: ["index should equal value", "nums[i] != i without sorting"]
+    why_wrong: "The array is unsorted, so index i is not supposed to hold i."
+    counterexample: "nums = [3,0,1] — index 0 is 3, not a missing-0 signal"
+  - id: hash_without_need
+    match_signals: ["put all in a set then scan 0..n"]
+    why_wrong: "Uses O(n) extra space when O(1) is available."
+    counterexample: "interview constraint: O(1) extra space"
+
+required_insights:
+  - id: range_is_n_plus_one
+    desc: "Treats the full set as 0..n with exactly one hole"
+    weight: 1
+    hints:
+      - "How many numbers should exist, and how many are given?"
+      - "n numbers from 0..n means one missing."
+  - id: xor_or_sum
+    desc: "Cancels present numbers via XOR (or subtracts from Gauss sum)"
+    weight: 3
+    hints:
+      - "How do you cancel every number that appears twice?"
+      - "XOR 0..n with every nums[i], or use n(n+1)/2 - sum(nums)."
+    on_fail_suggestion: "Don't sort. XOR the complete range with the array (or subtract from the closed-form sum)."
+  - id: complexity
+    desc: "States O(n) time and O(1) space"
+    weight: 1
+    hints:
+      - "Can you avoid a hash set?"
+      - "One pass, a few integers: O(n) / O(1)."
+
+edge_cases: ["missing 0", "missing n", "n = 1", "already almost sorted"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

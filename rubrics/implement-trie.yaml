@@ -1,0 +1,62 @@
+problem_id: implement-trie
+rubric_version: 1
+pattern: trie
+difficulty: 1400
+core_ask: "Implement a trie (prefix tree) with insert, search (full word), and startsWith (prefix)."
+
+optimal:
+  approach: "Each node has a map/array of children keyed by character and a boolean isEnd. insert/search/startsWith walk character by character, creating nodes only on insert. search requires isEnd at the last node; startsWith does not."
+  complexity: { time: "O(L)", space: "O(ALPHABET * total chars)" }
+  key_insight: "Shared prefixes share a path; a word end flag distinguishes 'app' from the prefix of 'apple'."
+  examples:
+    - input: "insert 'apple'; search 'apple'; search 'app'; startsWith 'app'; insert 'app'; search 'app'"
+      output: "true, false, true, true"
+      explanation: "Before the second insert, 'app' is only a prefix, not a word."
+    - input: "insert 'a'; startsWith 'a'; search 'ab'"
+      output: "true, false"
+      explanation: "Missing child b."
+    - input: "empty trie search 'a'"
+      output: "false"
+      explanation: "No nodes."
+
+acceptable_alternatives:
+  - approach: "Hash set of words plus scanning for prefixes."
+    note: "search is O(1) expected but startsWith is O(n L) over all words; not a trie."
+
+common_wrong_approaches:
+  - id: search_is_prefix
+    match_signals: ["search returns true for prefixes", "no isEnd"]
+    why_wrong: "search must match a complete inserted word."
+    counterexample: "insert apple; search app should be false"
+  - id: hashmap_only
+    match_signals: ["store all prefixes in a set", "only a word set"]
+    why_wrong: "A word set fails startsWith unless you store every prefix; that's a worse trie."
+    counterexample: "startsWith on a large dictionary without prefix sharing"
+
+required_insights:
+  - id: children_map
+    desc: "Nodes hold children keyed by next character"
+    weight: 2
+    hints:
+      - "Where does the next letter go?"
+      - "A dict or size-26 array of child nodes."
+  - id: is_end
+    desc: "Marks word ends separately from prefix paths"
+    weight: 3
+    hints:
+      - "How do search and startsWith differ at the last node?"
+      - "search needs isEnd; startsWith only needs the path to exist."
+    on_fail_suggestion: "Trie nodes + isEnd. search walks and checks isEnd; startsWith walks only."
+  - id: complexity
+    desc: "States O(length of the query) per operation"
+    weight: 1
+    hints:
+      - "Depend on dictionary size n?"
+      - "No — O(L) along the path."
+
+edge_cases: ["empty string if allowed", "shared prefixes", "search missing word that is a prefix", "repeated insert"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

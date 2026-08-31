@@ -1,0 +1,62 @@
+problem_id: connected-components-undirected
+rubric_version: 1
+pattern: graph
+difficulty: 1200
+core_ask: "n nodes 0..n-1 and undirected edges. Return the number of connected components. (Premium)"
+
+optimal:
+  approach: "Union-Find: start with n components, decrement on a union that merges. Or DFS/BFS from every unvisited node and count starts."
+  complexity: { time: "O(n + e)", space: "O(n)" }
+  key_insight: "Each DFS launch (or each unused union) identifies one component."
+  examples:
+    - input: "n = 5, edges = [[0,1],[1,2],[3,4]]"
+      output: "2"
+      explanation: "Component {0,1,2} and {3,4}."
+    - input: "n = 5, edges = [[0,1],[1,2],[2,3],[3,4]]"
+      output: "1"
+      explanation: "One path connecting all."
+    - input: "n = 3, edges = []"
+      output: "3"
+      explanation: "Isolated vertices."
+
+acceptable_alternatives:
+  - approach: "Build adj list, flood-fill, count seeds."
+    note: "Same complexity as Union-Find."
+
+common_wrong_approaches:
+  - id: count_edges
+    match_signals: ["n minus edges", "e+1 components"]
+    why_wrong: "Cycles and extra edges don't add components linearly."
+    counterexample: "A triangle plus an isolated node: n=4, e=3, components=2 not 1"
+  - id: directed
+    match_signals: ["only follow one direction"]
+    why_wrong: "Undirected: each edge is bidirectional."
+    counterexample: "[[0,1]] should connect both ways"
+
+required_insights:
+  - id: flood_or_union
+    desc: "Counts components via flood-fill starts or Union-Find merges"
+    weight: 3
+    hints:
+      - "How do you know two nodes share a component?"
+      - "DFS from unvisited, or union the edge endpoints."
+    on_fail_suggestion: "Don't use n-e. DFS unvisited nodes or Union-Find, counting remaining roots."
+  - id: isolated
+    desc: "Counts nodes with no edges as their own components"
+    weight: 1
+    hints:
+      - "What about a node never mentioned in edges?"
+      - "It still counts as a component."
+  - id: complexity
+    desc: "States O(n + e)"
+    weight: 1
+    hints:
+      - "Visit each node and edge once?"
+      - "Yes."
+
+edge_cases: ["no edges", "complete graph", "self-loops ignored", "duplicate edges"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

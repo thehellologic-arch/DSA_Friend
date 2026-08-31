@@ -1,0 +1,62 @@
+problem_id: reverse-linked-list
+rubric_version: 1
+pattern: linked-list
+difficulty: 800
+core_ask: "Reverse a singly linked list and return the new head."
+
+optimal:
+  approach: "Iterative: prev=null, cur=head. While cur, save next, cur.next=prev, prev=cur, cur=next. Return prev. Recursive reverse of the tail then head.next.next=head also works."
+  complexity: { time: "O(n)", space: "O(1)" }
+  key_insight: "You must stash the next pointer before you flip cur.next, or you lose the rest of the list."
+  examples:
+    - input: "1 -> 2 -> 3 -> 4 -> 5"
+      output: "5 -> 4 -> 3 -> 2 -> 1"
+      explanation: "Each next pointer is reversed; prev walks to 5."
+    - input: "1 -> 2"
+      output: "2 -> 1"
+      explanation: "Two pointer swaps."
+    - input: "empty"
+      output: "empty"
+      explanation: "prev stays null."
+
+acceptable_alternatives:
+  - approach: "Recursion on the tail, then fix the reversed link."
+    note: "O(n) stack space; mention iterative O(1) space."
+
+common_wrong_approaches:
+  - id: lose_next
+    match_signals: ["cur.next = prev without saving next"]
+    why_wrong: "The remainder of the list is unreachable."
+    counterexample: "1->2->3 becomes 1<-2 and 3 is leaked"
+  - id: copy_to_array
+    match_signals: ["put values in an array and rebuild"]
+    why_wrong: "Works but extra O(n) memory and not in-place pointer reversal."
+    counterexample: "Follow-up: reverse in O(1) extra space"
+
+required_insights:
+  - id: save_next
+    desc: "Saves the next node before rewiring"
+    weight: 2
+    hints:
+      - "After you point cur backward, how do you move forward?"
+      - "Store nxt = cur.next first."
+  - id: three_pointers
+    desc: "Walks prev, cur, next flipping cur.next = prev"
+    weight: 3
+    hints:
+      - "Which pointers do you need in the loop?"
+      - "prev, cur, and a temporary next."
+    on_fail_suggestion: "Iterate with prev/cur: stash next, reverse the link, advance."
+  - id: complexity
+    desc: "States O(n) time, O(1) extra space for iterative"
+    weight: 1
+    hints:
+      - "Stack vs iterative?"
+      - "Iterative is O(1) space."
+
+edge_cases: ["empty", "one node", "two nodes"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

@@ -1,0 +1,62 @@
+problem_id: longest-common-subsequence
+rubric_version: 1
+pattern: dynamic-programming
+difficulty: 1500
+core_ask: "Given two strings, return the length of their longest common subsequence (characters picked in order, not necessarily contiguous)."
+
+optimal:
+  approach: "2D DP: if text1[i-1]==text2[j-1], dp[i][j] = dp[i-1][j-1]+1; else max(dp[i-1][j], dp[i][j-1]). Can roll to two rows."
+  complexity: { time: "O(m n)", space: "O(min(m, n))" }
+  key_insight: "At each pair of prefixes, either the last characters match and you take both, or you drop one character from one string."
+  examples:
+    - input: "text1 = 'abcde', text2 = 'ace'"
+      output: "3"
+      explanation: "'ace' is a subsequence of both."
+    - input: "text1 = 'abc', text2 = 'abc'"
+      output: "3"
+      explanation: "The strings are equal."
+    - input: "text1 = 'abc', text2 = 'def'"
+      output: "0"
+      explanation: "No character in common; DP stays 0."
+
+acceptable_alternatives:
+  - approach: "Full m×n table without rolling arrays."
+    note: "Correct; space can be reduced to one row."
+
+common_wrong_approaches:
+  - id: longest_common_substring
+    match_signals: ["contiguous", "substring", "reset on mismatch"]
+    why_wrong: "LCS may skip characters; resetting on mismatch computes substring."
+    counterexample: "abcde vs ace — substring LCS would miss length 3"
+  - id: greedy_two_pointers
+    match_signals: ["greedy scan both", "always take first match"]
+    why_wrong: "An early match can block a longer sequence."
+    counterexample: "ab vs ba — greedy first letters mismatch and can yield 0 instead of 1"
+
+required_insights:
+  - id: match_or_drop
+    desc: "Recurrence: match last chars +1, else max of dropping one side"
+    weight: 3
+    hints:
+      - "If the current pair of letters is equal, what do you do? If not?"
+      - "Equal: diagonal + 1. Else: max(skip in s1, skip in s2)."
+    on_fail_suggestion: "This is not contiguous substring. DP on prefixes: match both or skip one character."
+  - id: subsequence_order
+    desc: "Preserves relative order in both strings"
+    weight: 1
+    hints:
+      - "Can you rearrange letters?"
+      - "No; only pick a subset in existing order."
+  - id: complexity
+    desc: "States O(m n) time"
+    weight: 1
+    hints:
+      - "How many prefix pairs?"
+      - "m times n cells, O(1) work each."
+
+edge_cases: ["empty string", "no common letters", "identical strings", "one string is subsequence of the other"]
+
+scoring:
+  formula: "sum(weight of insights hit) / sum(all weights)"
+  hint_penalty_per_reveal: 0.1
+  self_correction_bonus: 0.05

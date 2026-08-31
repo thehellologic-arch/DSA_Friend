@@ -190,16 +190,40 @@ function pickNextUnresolvedInsight(
   return unresolved[0] ?? null;
 }
 
+function sampleLine(rubric: Rubric): string | null {
+  const example = rubric.optimal.examples?.[0];
+  if (!example) return null;
+  return `Sample: ${example.input}. Expected ${example.output}.`;
+}
+
+function withSample(rubric: Rubric, question: string): string {
+  const sample = sampleLine(rubric);
+  return sample ? `${sample}\n\n${question}` : question;
+}
+
+function findAcceptable(rubric: Rubric, id: string) {
+  return rubric.acceptable_alternatives.find(
+    (alt) => alt.id === id || alt.approach === id,
+  );
+}
+
 function probeText(
+  rubric: Rubric,
   insight: Rubric["required_insights"][number],
   probeIndex: number,
 ): string {
-  if (insight.hints.length === 1) return insight.hints[0];
-  return insight.hints[probeIndex] ?? insight.hints[insight.hints.length - 2];
+  const question =
+    insight.hints.length === 1
+      ? insight.hints[0]
+      : (insight.hints[probeIndex] ?? insight.hints[insight.hints.length - 2]);
+  return withSample(rubric, question);
 }
 
-function revealText(insight: Rubric["required_insights"][number]): string {
-  return insight.hints[insight.hints.length - 1];
+function revealText(
+  rubric: Rubric,
+  insight: Rubric["required_insights"][number],
+): string {
+  return withSample(rubric, insight.hints[insight.hints.length - 1]);
 }
 
 function shouldGiveReveal(
@@ -218,9 +242,51 @@ export function nextTurnAction(
   classification: ClassifyResult,
 ): TurnAction {
   const matchedWrong = classification.matchedWrongApproach ?? null;
+  const matchedAcceptable = classification.matchedAcceptableAlternative ?? null;
+  const messageKind = classification.messageKind ?? "approach";
 
   if (allInsightsResolved(ctx.insightResults)) {
     return verdictReady();
+  }
+
+  if (messageKind === "sample_request") {
+    const sample = sampleLine(rubric);
+    return {
+      kind: "clarification",
+      text: sample
+        ? `${sample}\n\nWalk through this input with the approach you already described.`
+        : `This problem: ${rubric.core_ask} How would you approach it?`,
+    };
+  }
+
+  if (messageKind === "pushback") {
+    const alt = matchedAcceptable
+      ? findAcceptable(rubric, matchedAcceptable)
+      : null;
+    const method = alt?.approach ?? "the approach you already described";
+    return {
+      kind: "clarification",
+      text: withSample(
+        rubric,
+        `That last probe was about a different method. Stay with ${method.replace(/\.$/, "")}. Trace it on the sample.`,
+      ),
+    };
+  }
+
+  if (messageKind !== "approach" && !matchedWrong && !matchedAcceptable) {
+    if (messageKind === "question") {
+      return {
+        kind: "clarification",
+        text: withSample(
+          rubric,
+          `This problem: ${rubric.core_ask} How would you approach it?`,
+        ),
+      };
+    }
+    return {
+      kind: "clarification",
+      text: "I only grade this problem. Tell me your approach — off-topic messages do not count as hints.",
+    };
   }
 
   if (matchedWrong) {
@@ -232,6 +298,24 @@ export function nextTurnAction(
         input: wrong.counterexample,
         text: `Walk me through ${wrong.counterexample}. ${wrong.why_wrong}`,
       };
+    }
+  }
+
+  if (matchedAcceptable) {
+    const alt = findAcceptable(rubric, matchedAcceptable);
+    const altProbes = ctx.probesUsedByInsight[matchedAcceptable] ?? 0;
+    if (alt && altProbes === 0) {
+      return {
+        kind: "follow_up",
+        insightId: matchedAcceptable,
+        text: withSample(
+          rubric,
+          `${alt.approach} ${alt.note} Walk through the sample with that method — which values do you pick, and what is the answer?`,
+        ),
+      };
+    }
+    if (alt) {
+      return verdictReady();
     }
   }
 
@@ -254,14 +338,14 @@ export function nextTurnAction(
     return {
       kind: "follow_up",
       insightId: nextInsight.id,
-      text: probeText(nextInsight, probesUsed),
+      text: probeText(rubric, nextInsight, probesUsed),
     };
   }
 
   return {
     kind: "hint",
     insightId: nextInsight.id,
-    text: revealText(nextInsight),
+    text: revealText(rubric, nextInsight),
   };
 }
 

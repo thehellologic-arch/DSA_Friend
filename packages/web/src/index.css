@@ -486,6 +486,38 @@ body {
   margin-bottom: 0.85rem;
 }
 
+.roadmap-view-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.roadmap-view-toggle button {
+  background: #15151e;
+  border: 1px solid #343448;
+  border-radius: 999px;
+  color: #b8b8d0;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.85rem;
+}
+
+.roadmap-view-toggle button.active {
+  background: #2a2a48;
+  border-color: #a8a8ff;
+  color: #dadaff;
+}
+
+.roadmap-track-intro {
+  margin: 0 0 0.85rem;
+}
+
+.roadmap-problem-title {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
 .roadmap-pattern {
   margin: 0 0 0.35rem;
   text-transform: capitalize;

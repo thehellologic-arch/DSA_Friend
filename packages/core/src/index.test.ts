@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  ApproachEvaluationSchema,
   ApproachModelSchema,
   computeScore,
   initInsightResults,
@@ -11,9 +12,12 @@ import {
   scanAcceptableAlternatives,
   scanTutorIntent,
   ValidationConfigSchema,
+  type ApproachEvaluation,
+  type ApproachModel,
   type ClassifyResult,
   type Rubric,
   type SessionContext,
+  type ValidationConfig,
 } from "./index.js";
 
 const rubric: Rubric = {
@@ -570,5 +574,108 @@ describe("open-world evaluation schemas", () => {
         cases: [{}],
       }),
     ).toThrow();
+  });
+
+  it("parses a valid approach evaluation and rejects invalid fields", () => {
+    const evaluation: ApproachEvaluation = ApproachEvaluationSchema.parse({
+      messageKind: "approach",
+      route: "known_canonical",
+      canonicalInsights: [
+        { id: "needs_sorting", status: "yes", evidence: "mentioned sort" },
+      ],
+      approach: {
+        steps: ["sort ascending", "move two pointers based on the sum"],
+        state: ["left index", "right index"],
+        invariant: "No discarded outside pair can reach the target",
+        claimedComplexity: { time: "O(n log n)", space: "O(1)" },
+        assumptions: ["sorting a copy is allowed"],
+        evidence: [
+          { claim: "sort ascending", quote: "I will sort the array" },
+        ],
+        criticalGaps: [],
+      },
+      casePredictions: [
+        {
+          caseId: "basic",
+          output: [0, 1],
+          reasoning: "sorted array yields matching pair at indices 0 and 1",
+        },
+      ],
+      recommendation: "supported",
+      challenge: null,
+      confidence: 0.9,
+    });
+
+    expect(evaluation.route).toBe("known_canonical");
+    expect(evaluation.confidence).toBe(0.9);
+
+    const approach: ApproachModel = evaluation.approach;
+    expect(approach.steps).toHaveLength(2);
+
+    expect(() =>
+      ApproachEvaluationSchema.parse({
+        messageKind: "approach",
+        route: "known_canonical",
+        canonicalInsights: [],
+        approach: {
+          steps: [],
+          state: [],
+          invariant: null,
+          claimedComplexity: null,
+          assumptions: [],
+          evidence: [],
+          criticalGaps: [],
+        },
+        casePredictions: [],
+        recommendation: "supported",
+        challenge: null,
+        confidence: 1.5,
+      }),
+    ).toThrow();
+
+    expect(() =>
+      ApproachEvaluationSchema.parse({
+        messageKind: "approach",
+        route: "invalid_route",
+        canonicalInsights: [],
+        approach: {
+          steps: [],
+          state: [],
+          invariant: null,
+          claimedComplexity: null,
+          assumptions: [],
+          evidence: [],
+          criticalGaps: [],
+        },
+        casePredictions: [],
+        recommendation: "supported",
+        challenge: null,
+        confidence: 0.5,
+      }),
+    ).toThrow();
+  });
+
+  it("parses a rubric with an optional validation block", () => {
+    const validation: ValidationConfig = {
+      oracle: "two-sum",
+      cases: [
+        { id: "basic", input: { nums: [2, 7, 11, 15], target: 9 }, tags: ["smoke"] },
+        { id: "empty", input: { nums: [], target: 0 }, tags: [] },
+      ],
+    };
+
+    const parsed = parseRubric({
+      ...rubric,
+      validation,
+    });
+
+    expect(parsed.validation?.oracle).toBe("two-sum");
+    expect(parsed.validation?.cases).toHaveLength(2);
+    expect(parsed.validation?.cases[0]?.id).toBe("basic");
+    expect(parsed.validation?.cases[0]?.input).toEqual({
+      nums: [2, 7, 11, 15],
+      target: 9,
+    });
+    expect(parsed.validation?.cases[1]?.tags).toEqual([]);
   });
 });

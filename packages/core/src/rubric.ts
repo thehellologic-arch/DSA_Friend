@@ -18,6 +18,7 @@ export const ValidationConfigSchema = z.object({
       }),
   ),
 });
+export type ValidationConfig = z.infer<typeof ValidationConfigSchema>;
 
 export const RubricSchema = z.object({
   problem_id: z.string(),
@@ -100,6 +101,7 @@ export const ApproachModelSchema = z.object({
   evidence: z.array(z.object({ claim: z.string(), quote: z.string() })),
   criticalGaps: z.array(z.string()),
 });
+export type ApproachModel = z.infer<typeof ApproachModelSchema>;
 
 export const ApproachEvaluationSchema = z.object({
   messageKind: MessageKindSchema,
@@ -119,6 +121,7 @@ export const ApproachEvaluationSchema = z.object({
   challenge: z.string().nullable(),
   confidence: z.number().min(0).max(1),
 });
+export type ApproachEvaluation = z.infer<typeof ApproachEvaluationSchema>;
 
 export type ValidationOutcome =
   | { status: "optimal" | "acceptable"; evidence: string[] }

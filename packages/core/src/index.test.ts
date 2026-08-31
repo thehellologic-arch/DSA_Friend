@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
 import {
   ApproachEvaluationSchema,
@@ -653,6 +656,61 @@ describe("open-world evaluation schemas", () => {
         confidence: 0.5,
       }),
     ).toThrow();
+  });
+
+  it("loads the Two Sum pilot validation contract from the rubric fixture", () => {
+    const rubricPath = path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "../../../rubrics/two-sum-hash-set.yaml",
+    );
+    const raw = fs.readFileSync(rubricPath, "utf-8");
+
+    expect(raw).toContain("oracle: two_sum_exists");
+    expect(raw).toContain("id: basic_match");
+    expect(raw).toContain("id: duplicate_match");
+    expect(raw).toContain("id: no_match");
+  });
+
+  it("parses the Two Sum pilot validation cases through parseRubric", () => {
+    const validation: ValidationConfig = {
+      oracle: "two_sum_exists",
+      cases: [
+        {
+          id: "basic_match",
+          input: { numbers: [2, 7, 11, 15], target: 9 },
+          tags: ["basic"],
+        },
+        {
+          id: "duplicate_match",
+          input: { numbers: [3, 3], target: 6 },
+          tags: ["duplicates", "distinct_indices"],
+        },
+        {
+          id: "no_match",
+          input: { numbers: [1, 2, 4], target: 8 },
+          tags: ["negative_result"],
+        },
+      ],
+    };
+
+    const parsed = parseRubric({ ...twoSum, validation });
+
+    expect(parsed.validation?.oracle).toBe("two_sum_exists");
+    expect(parsed.validation?.cases).toHaveLength(3);
+    expect(parsed.validation?.cases.map((testCase) => testCase.id)).toEqual([
+      "basic_match",
+      "duplicate_match",
+      "no_match",
+    ]);
+    expect(parsed.validation?.cases[0]?.input).toEqual({
+      numbers: [2, 7, 11, 15],
+      target: 9,
+    });
+    expect(parsed.validation?.cases[1]?.tags).toEqual([
+      "duplicates",
+      "distinct_indices",
+    ]);
+    expect(parsed.validation?.cases[2]?.tags).toEqual(["negative_result"]);
   });
 
   it("parses a rubric with an optional validation block", () => {

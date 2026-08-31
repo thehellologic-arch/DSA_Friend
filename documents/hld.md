@@ -59,10 +59,10 @@ An enabled rubric supplies:
 - canonical complexity target;
 - curated examples and counterexamples;
 - known approaches and known failure modes;
-- deterministic oracle identifier.
+- curated validation cases with expected outputs.
 
-The oracle computes expected outputs. It does not determine whether a vague
-verbal description faithfully implements an algorithm.
+Expected case outputs are authored with the rubric. They do not determine
+whether a vague verbal description faithfully implements an algorithm.
 
 ### Approach Interpreter
 
@@ -104,7 +104,7 @@ call:
 6. identifies the highest-risk missing assumption;
 7. recommends either a verdict or one challenge.
 
-Expected case outputs come from curated data or deterministic oracles. The LLM
+Expected case outputs come from curated data authored with the rubric. The LLM
 cannot create its own answer key.
 
 ### Challenge Manager
@@ -141,7 +141,7 @@ supported `optimal`, `acceptable`, and `incorrect` outcomes update Elo.
    canonical insight evidence or routes it to novel validation in the same
    call.
 5. Validate its structured output against a strict schema.
-6. Independently obtain expected outputs from the problem oracle.
+6. Independently obtain expected outputs from curated validation cases.
 7. Apply deterministic evidence gates.
 8. Return a verdict or one targeted challenge.
 9. Merge the answer into the existing approach model and evaluate once more.
@@ -153,7 +153,7 @@ Deterministic:
 
 - rubric parsing;
 - known approach matching;
-- oracle outputs;
+- curated validation case outputs;
 - evidence-gate policy;
 - session state transitions;
 - hint limits;
@@ -218,7 +218,7 @@ Cost controls:
 - Invalid model JSON: retry once, then abstain.
 - Unsupported or contradictory claims: ask the single challenge or abstain.
 - Concrete counterexample: return `incorrect` with its trace.
-- Missing oracle: known paths may proceed; novel paths abstain.
+- Missing validation cases: known paths may proceed; novel paths abstain.
 - Model/provider failure: preserve session state and return a retryable result.
 - Unstable repeated evaluation: do not vote a definitive answer; abstain.
 

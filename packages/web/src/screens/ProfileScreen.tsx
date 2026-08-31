@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   fetchAttempts,
   fetchProgress,
+  logout,
   setSkillLevel,
   type SkillLevel,
   type StoredAttempt,
@@ -16,7 +17,12 @@ const LEVELS: { id: SkillLevel; label: string }[] = [
   { id: "expert", label: "Expert" },
 ];
 
-export default function ProfileScreen() {
+interface Props {
+  username: string;
+  onLogout: () => void;
+}
+
+export default function ProfileScreen({ username, onLogout }: Props) {
   const [progress, setProgress] = useState<UserProgress | null>(null);
   const [attempts, setAttempts] = useState<StoredAttempt[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +58,15 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch {
+      // Still clear local session UI.
+    }
+    onLogout();
+  };
+
   if (!progress && !error) {
     return <div className="loading">Loading profile...</div>;
   }
@@ -60,10 +75,22 @@ export default function ProfileScreen() {
     <>
       <header className="header">
         <h1 className="screen-title">Profile</h1>
-        {progress && (
-          <span className="meta">{progress.skillLevel}</span>
-        )}
+        <span className="meta">{username}</span>
       </header>
+
+      <section className="card profile-card">
+        <h2>Account</h2>
+        <p className="meta">
+          Signed in as <strong>{username}</strong>
+        </p>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => void handleLogout()}
+        >
+          Log out
+        </button>
+      </section>
 
       <section className="card profile-card">
         <h2>Skill level</h2>

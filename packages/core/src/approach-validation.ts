@@ -3,7 +3,6 @@ import type {
   Rubric,
   ValidationOutcome,
 } from "./rubric.js";
-import { runOracle } from "./oracles.js";
 
 function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) {
@@ -83,27 +82,14 @@ export function evaluateEvidence(
   const evidence: string[] = [];
 
   for (const testCase of validation.cases) {
-    let expected: unknown;
-    try {
-      expected = runOracle(validation.oracle, testCase.input);
-    } catch (error) {
-      return {
-        status: "plausible_unverified",
-        reason:
-          error instanceof Error
-            ? error.message
-            : "The deterministic validation oracle could not be evaluated.",
-      };
-    }
-
     const predicted = predictions.get(testCase.id);
-    if (normalizedJson(predicted) !== normalizedJson(expected)) {
+    if (normalizedJson(predicted) !== normalizedJson(testCase.output)) {
       return {
         status: "incorrect",
         counterexample: `Case ${testCase.id}: input ${JSON.stringify(
           testCase.input,
         )}, predicted ${JSON.stringify(predicted)}, expected ${JSON.stringify(
-          expected,
+          testCase.output,
         )}.`,
       };
     }

@@ -4,27 +4,50 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+dotenv.config({
+  path: path.resolve(__dirname, "../../../.env"),
+  override: true,
+});
 
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import fastifyStatic from "@fastify/static";
 import Fastify from "fastify";
 import { isSkillLevel, type SkillLevel } from "@reason/core";
+import { registerAdminRoutes } from "./admin-routes.js";
+import {
+  AuthError,
+  createAuthService,
+  type AuthService,
+} from "./auth-service.js";
+import {
+  clearUserCookie,
+  requireAuth,
+  writeUserCookie,
+} from "./auth.js";
+import { loadCatalogCache } from "./catalog-cache.js";
 import { createProgressRepository } from "./create-progress-repo.js";
-import { GeminiProvider } from "./gemini-provider.js";
-import { ensureGuest } from "./guest.js";
-import { JudgingService } from "./judging-service.js";
 import { resolveNovelEvaluationMode } from "./evaluation-metrics.js";
+import { GeminiProvider } from "./gemini-provider.js";
+import { JudgingService } from "./judging-service.js";
+import { isMongoConfigured } from "./mongo.js";
 import { OllamaProvider } from "./ollama-provider.js";
 import { OpenAIProvider } from "./openai-provider.js";
 import { ProgressService } from "./progress-service.js";
-import { getRubric, listProblems, loadRubrics } from "./rubric-store.js";
-import { loadTracks } from "./track-store.js";
 import {
+  clearYamlCatalogFallback,
+  getRubric,
+  listProblems,
+  loadRubrics,
+} from "./rubric-store.js";
+import {
+  createSessionStore,
   getTranscript,
-  InMemorySessionStore,
 } from "./session-store.js";
+import {
+  clearYamlTrackFallback,
+  loadTracks,
+} from "./track-store.js";
 
 const isProd = process.env.NODE_ENV === "production";
 const PORT = Number(process.env.PORT ?? 3001);
@@ -52,14 +75,32 @@ if (!OPENROUTER_API_KEY && !GEMINI_API_KEY && !OLLAMA_BASE_URL) {
   process.exit(1);
 }
 
-loadTracks();
-loadRubrics();
+if (isMongoConfigured()) {
+  try {
+    const loaded = await loadCatalogCache();
+    clearYamlCatalogFallback();
+    clearYamlTrackFallback();
+    console.info(
+      `Catalog cache loaded: ${loaded.problems} problems, ${loaded.tracks} tracks`,
+    );
+  } catch (err) {
+    console.warn(
+      "Mongo catalog unavailable; falling back to YAML",
+      err instanceof Error ? err.message : err,
+    );
+    loadTracks();
+    loadRubrics();
+  }
+} else {
+  loadTracks();
+  loadRubrics();
+}
 
 function knownPatterns(): string[] {
   return [...new Set(listProblems().map((problem) => problem.pattern))];
 }
 
-const store = new InMemorySessionStore();
+const store = await createSessionStore();
 const llm = OPENROUTER_API_KEY
   ? new OpenAIProvider({
       apiKey: OPENROUTER_API_KEY,
@@ -93,6 +134,24 @@ const llmModel = OPENROUTER_API_KEY
     : OLLAMA_MODEL;
 const progressRepo = await createProgressRepository();
 const progress = new ProgressService(progressRepo, () => listProblems());
+
+let auth: AuthService | null = null;
+if (isMongoConfigured()) {
+  try {
+    auth = await createAuthService();
+    console.info("Auth service ready (username/password)");
+  } catch (err) {
+    console.error(
+      "Auth requires MongoDB",
+      err instanceof Error ? err.message : err,
+    );
+    process.exit(1);
+  }
+} else {
+  console.error("MONGODB_URI is required for login/registration");
+  process.exit(1);
+}
+
 const novelEvaluationMode = resolveNovelEvaluationMode();
 
 const app = Fastify({ logger: true, trustProxy: true });
@@ -108,14 +167,94 @@ await app.register(cookie);
 
 app.get("/health", async () => ({ ok: true }));
 
+await registerAdminRoutes(app);
+
+async function withAuth(
+  req: Parameters<typeof requireAuth>[0],
+  reply: Parameters<typeof requireAuth>[1],
+) {
+  try {
+    return await requireAuth(req, reply, auth!, progress, knownPatterns());
+  } catch (err) {
+    if (err instanceof Error && err.message === "LOGIN_REQUIRED") {
+      return null;
+    }
+    throw err;
+  }
+}
+
 await app.register(async (api) => {
+  api.post<{ Body: { username?: string; password?: string } }>(
+    "/auth/register",
+    async (req, reply) => {
+      try {
+        const user = await auth!.register(
+          req.body?.username ?? "",
+          req.body?.password ?? "",
+        );
+        writeUserCookie(reply, user.id);
+        await progress.ensureUser(user.id, user.skillLevel, knownPatterns());
+        return {
+          userId: user.id,
+          username: user.username,
+          onboarded: user.onboarded,
+          skillLevel: user.skillLevel,
+        };
+      } catch (err) {
+        if (err instanceof AuthError) {
+          return reply.status(err.statusCode).send({ error: err.message });
+        }
+        throw err;
+      }
+    },
+  );
+
+  api.post<{ Body: { username?: string; password?: string } }>(
+    "/auth/login",
+    async (req, reply) => {
+      try {
+        const user = await auth!.login(
+          req.body?.username ?? "",
+          req.body?.password ?? "",
+        );
+        writeUserCookie(reply, user.id);
+        await progress.ensureUser(user.id, user.skillLevel, knownPatterns());
+        return {
+          userId: user.id,
+          username: user.username,
+          onboarded: user.onboarded,
+          skillLevel: user.skillLevel,
+        };
+      } catch (err) {
+        if (err instanceof AuthError) {
+          return reply.status(err.statusCode).send({ error: err.message });
+        }
+        throw err;
+      }
+    },
+  );
+
+  api.post("/auth/logout", async (_req, reply) => {
+    clearUserCookie(reply);
+    return { ok: true };
+  });
+
+  api.get("/auth/me", async (req, reply) => {
+    const user = await withAuth(req, reply);
+    if (!user) return;
+    return {
+      userId: user.id,
+      username: user.username,
+      onboarded: user.onboarded,
+      skillLevel: user.skillLevel,
+    };
+  });
+
   api.get<{ Querystring: { pattern?: string; difficulty?: string } }>(
     "/problems",
-    async (req) => {
-      if (!isProd) {
-        loadTracks();
-        loadRubrics();
-      }
+    async (req, reply) => {
+      const user = await withAuth(req, reply);
+      if (!user) return;
       const pattern = req.query.pattern?.trim();
       const difficulty = req.query.difficulty
         ? Number(req.query.difficulty)
@@ -134,33 +273,33 @@ await app.register(async (api) => {
   );
 
   api.get("/me/progress", async (req, reply) => {
-    const userId = await ensureGuest(req, reply, progress, knownPatterns());
-    return progress.getProgress(userId);
+    const user = await withAuth(req, reply);
+    if (!user) return;
+    return progress.getProgress(user.id);
   });
 
   api.get("/me/roadmap", async (req, reply) => {
-    if (!isProd) {
-      loadTracks();
-      loadRubrics();
-    }
-    const userId = await ensureGuest(req, reply, progress, knownPatterns());
-    return progress.getRoadmap(userId);
+    const user = await withAuth(req, reply);
+    if (!user) return;
+    return progress.getRoadmap(user.id);
   });
 
   api.get("/me/attempts", async (req, reply) => {
-    const userId = await ensureGuest(req, reply, progress, knownPatterns());
-    return { attempts: await progress.listAttempts(userId) };
+    const user = await withAuth(req, reply);
+    if (!user) return;
+    return { attempts: await progress.listAttempts(user.id) };
   });
 
   api.get<{ Querystring: { pattern?: string; difficulty?: string } }>(
     "/me/recommend",
     async (req, reply) => {
-      const userId = await ensureGuest(req, reply, progress, knownPatterns());
+      const user = await withAuth(req, reply);
+      if (!user) return;
       const pattern = req.query.pattern?.trim();
       const difficulty = req.query.difficulty
         ? Number(req.query.difficulty)
         : undefined;
-      const problems = await progress.recommend(userId, 5, undefined, {
+      const problems = await progress.recommend(user.id, 5, undefined, {
         pattern: pattern || undefined,
         difficulty: Number.isFinite(difficulty) ? difficulty : undefined,
       });
@@ -175,19 +314,16 @@ await app.register(async (api) => {
       if (!skillLevel || !isSkillLevel(skillLevel)) {
         return reply.status(400).send({ error: "skillLevel is required" });
       }
-      const userId = await ensureGuest(
-        req,
-        reply,
-        progress,
-        knownPatterns(),
-        skillLevel,
-      );
-      await progress.setSkillLevel(userId, skillLevel, knownPatterns(), true);
-      return progress.getProgress(userId);
+      const user = await withAuth(req, reply);
+      if (!user) return;
+      await progress.setSkillLevel(user.id, skillLevel, knownPatterns(), true);
+      return progress.getProgress(user.id);
     },
   );
 
   api.post<{ Body: { problemSlug: string } }>("/sessions", async (req, reply) => {
+    const user = await withAuth(req, reply);
+    if (!user) return;
     const { problemSlug } = req.body ?? {};
     if (!problemSlug) {
       return reply.status(400).send({ error: "problemSlug is required" });
@@ -198,8 +334,7 @@ await app.register(async (api) => {
       return reply.status(404).send({ error: "Problem not found" });
     }
 
-    const userId = await ensureGuest(req, reply, progress, knownPatterns());
-    const session = store.create(problemSlug, rubric, userId);
+    const session = await store.create(problemSlug, rubric, user.id);
     const summary = listProblems().find((problem) => problem.slug === problemSlug);
     return {
       sessionId: session.id,
@@ -214,8 +349,10 @@ await app.register(async (api) => {
   });
 
   api.get<{ Params: { id: string } }>("/sessions/:id", async (req, reply) => {
-    const session = store.get(req.params.id);
-    if (!session) {
+    const user = await withAuth(req, reply);
+    if (!user) return;
+    const session = await store.get(req.params.id);
+    if (!session || session.userId !== user.id) {
       return reply.status(404).send({ error: "Session not found" });
     }
 
@@ -237,6 +374,13 @@ await app.register(async (api) => {
     Params: { id: string };
     Body: { message: string; idempotencyKey: string };
   }>("/sessions/:id/turns", async (req, reply) => {
+    const user = await withAuth(req, reply);
+    if (!user) return;
+    const session = await store.get(req.params.id);
+    if (!session || session.userId !== user.id) {
+      return reply.status(404).send({ error: "Session not found" });
+    }
+
     const { message, idempotencyKey } = req.body ?? {};
     if (!message?.trim()) {
       return reply.status(400).send({ error: "message is required" });
@@ -246,12 +390,11 @@ await app.register(async (api) => {
     }
 
     try {
-      const result = await judging.handleTurn(
+      return await judging.handleTurn(
         req.params.id,
         message.trim(),
         idempotencyKey,
       );
-      return result;
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       if (msg === "Session not found") {
@@ -266,6 +409,13 @@ await app.register(async (api) => {
     Params: { id: string };
     Body: { idempotencyKey: string };
   }>("/sessions/:id/verdict", async (req, reply) => {
+    const user = await withAuth(req, reply);
+    if (!user) return;
+    const session = await store.get(req.params.id);
+    if (!session || session.userId !== user.id) {
+      return reply.status(404).send({ error: "Session not found" });
+    }
+
     const { idempotencyKey } = req.body ?? {};
     if (!idempotencyKey) {
       return reply.status(400).send({ error: "idempotencyKey is required" });

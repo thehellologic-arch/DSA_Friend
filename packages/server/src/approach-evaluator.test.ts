@@ -85,9 +85,9 @@ function successfulCompletion(
 }
 
 describe("evaluateApproach", () => {
-  it("sends only case ids and inputs, never oracle outputs", async () => {
+  it("sends only case ids and inputs, never curated outputs", async () => {
     const complete = successfulCompletion();
-    const oracleOutput = [0, 1];
+    const curatedOutput = [0, 1];
 
     await evaluateApproach(
       baseRequest({
@@ -112,7 +112,7 @@ describe("evaluateApproach", () => {
       { id: "basic_match", input: { numbers: [2, 7, 11, 15], target: 9 } },
     ]);
     expect(userContent).not.toContain("expected");
-    expect(userContent).not.toContain(JSON.stringify(oracleOutput));
+    expect(userContent).not.toContain(JSON.stringify(curatedOutput));
     for (const testCase of payload.cases) {
       expect(Object.keys(testCase).sort()).toEqual(["id", "input"]);
     }

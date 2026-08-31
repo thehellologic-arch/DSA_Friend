@@ -41,8 +41,8 @@ import type { LLMProvider } from "./ollama-provider.js";
 import type { ProgressService, ProgressUpdate } from "./progress-service.js";
 import {
   getTranscript,
-  type InMemorySessionStore,
   type Session,
+  type SessionStore,
   updateSessionState,
 } from "./session-store.js";
 
@@ -188,7 +188,7 @@ export class JudgingService {
   private readonly logEvaluation: EvaluationLogFn;
 
   constructor(
-    private store: InMemorySessionStore,
+    private store: SessionStore,
     private llm: LLMProvider,
     private progress: ProgressService,
     options: JudgingServiceOptions = {},
@@ -210,7 +210,7 @@ export class JudgingService {
     message: string,
     idempotencyKey: string,
   ): Promise<TurnResponse> {
-    const session = this.store.get(sessionId);
+    const session = await this.store.get(sessionId);
     if (!session) throw new Error("Session not found");
 
     const cached = session.idempotencyCache.get(idempotencyKey);
@@ -241,6 +241,7 @@ export class JudgingService {
         content: text,
       });
       session.idempotencyCache.set(idempotencyKey, action);
+      await this.store.save(session);
       return this.buildResponse(session, action);
     }
 
@@ -393,6 +394,7 @@ export class JudgingService {
     }
 
     session.idempotencyCache.set(idempotencyKey, action);
+    await this.store.save(session);
     return this.buildResponse(session, action);
   }
 
@@ -662,7 +664,7 @@ export class JudgingService {
     sessionId: string,
     idempotencyKey: string,
   ): Promise<TurnResponse> {
-    const session = this.store.get(sessionId);
+    const session = await this.store.get(sessionId);
     if (!session) throw new Error("Session not found");
 
     const cached = session.idempotencyCache.get(idempotencyKey);
@@ -688,6 +690,7 @@ export class JudgingService {
     updateSessionState(session, "VERDICT");
     await this.persistVerdict(session, action.verdict);
     session.idempotencyCache.set(idempotencyKey, action);
+    await this.store.save(session);
     return this.buildResponse(session, action);
   }
 

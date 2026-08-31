@@ -153,6 +153,7 @@ export class ProgressService {
           hintUsage: 0,
           lastPracticedAt: null,
           recentPerformance: [],
+          masteredInsightKeys: [],
         });
       }
     }
@@ -237,16 +238,17 @@ export class ProgressService {
       ...current.recentPerformance,
     ].slice(0, 5);
     const masteryAfter = computeMasteryPercent(recentPerformance);
-    const history = await this.repo.listAttempts(input.userId);
-    const previousYes = new Set<string>();
-    for (const attempt of history.filter((item) => item.pattern === input.pattern)) {
-      for (const insight of attempt.insightResults) {
-        if (insight.status === "yes") previousYes.add(insight.id);
-      }
-    }
-    const newlyMasteredInsights = input.verdict.insights.filter(
-      (insight) => insight.status === "yes" && !previousYes.has(insight.id),
-    );
+    const previousYes = new Set(current.masteredInsightKeys ?? []);
+    const newlyMasteredInsights = input.verdict.insights.filter((insight) => {
+      const key = `${input.problemSlug}:${insight.id}`;
+      return insight.status === "yes" && !previousYes.has(key);
+    });
+    const masteredInsightKeys = [
+      ...previousYes,
+      ...newlyMasteredInsights.map(
+        (insight) => `${input.problemSlug}:${insight.id}`,
+      ),
+    ];
 
     const attemptId = randomUUID();
     await this.repo.insertAttempt({
@@ -287,6 +289,7 @@ export class ProgressService {
       hintUsage: current.hintUsage + input.verdict.hintsUsed,
       lastPracticedAt: this.now().toISOString(),
       recentPerformance,
+      masteredInsightKeys,
     });
 
     return {
@@ -325,9 +328,7 @@ export class ProgressService {
     const progress = await this.getProgress(userId);
     const problems = this.listProblems();
     const bySlug = new Map(problems.map((problem) => [problem.slug, problem]));
-    const completed = new Set(
-      (await this.repo.listAttempts(userId)).map((attempt) => attempt.problemSlug),
-    );
+    const completed = new Set(await this.repo.listCompletedProblemSlugs(userId));
     const topics = progress.topics.map((topic) => {
       const recommendedLevel = ratingToLevel(topic.rating);
       const levels = [1, 2, 3, 4, 5].map((level) => ({
@@ -459,6 +460,7 @@ export class ProgressService {
         hintUsage: 0,
         lastPracticedAt: null,
         recentPerformance: [],
+        masteredInsightKeys: [],
       });
     }
   }
@@ -468,7 +470,12 @@ export class ProgressService {
     pattern: string,
   ): Promise<TopicProgressRow> {
     const existing = await this.repo.getTopicProgress(userId, pattern);
-    if (existing) return existing;
+    if (existing) {
+      return {
+        ...existing,
+        masteredInsightKeys: existing.masteredInsightKeys ?? [],
+      };
+    }
     const user = await this.repo.getUser(userId);
     const rating = STARTING_RATING[user?.skillLevel ?? "intermediate"];
     return this.repo.upsertTopicProgress({
@@ -480,6 +487,7 @@ export class ProgressService {
       hintUsage: 0,
       lastPracticedAt: null,
       recentPerformance: [],
+      masteredInsightKeys: [],
     });
   }
 }

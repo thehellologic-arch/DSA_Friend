@@ -15,8 +15,9 @@ pnpm workspace with three packages:
 | Web | React 18, Vite |
 | API | Fastify, Zod |
 | Core | Pure TypeScript (scoring, state machine, recommendations) + Vitest |
-| Data | PostgreSQL 16 (`pg`); in-memory fallback for local/dev |
-| Content | Versioned YAML rubrics in `rubrics/` |
+| Data | MongoDB Atlas (problems, tracks, users, sessions, attempts); Postgres optional legacy |
+| Content | Versioned rubrics in Mongo (YAML seed in `rubrics/`) |
+| Auth | Username + password (unique username); login required |
 | LLM | OpenRouter (Gemini Flash + fallbacks), with direct Gemini / Ollama as optional backups |
 
 ## Hosting

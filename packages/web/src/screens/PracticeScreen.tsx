@@ -16,6 +16,7 @@ import AttemptHistory, {
   type ChatMessage,
 } from "../components/AttemptHistory";
 import VerdictCard from "../components/VerdictCard";
+import MarkdownMessage from "../components/MarkdownMessage";
 
 type Screen = "start" | "loop";
 
@@ -147,6 +148,8 @@ export default function PracticeScreen({
     setError(null);
     const message = input.trim();
     setInput("");
+    // Show the user bubble immediately while the grader thinks.
+    setTranscript((prev) => [...prev, { role: "USER", content: message }]);
 
     try {
       const key = `turn-${session.sessionId}-${turnCount}`;
@@ -165,6 +168,13 @@ export default function PracticeScreen({
         void loadHistory(session.sessionId);
       }
     } catch (e) {
+      setTranscript((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "USER" && last.content === message) {
+          return prev.slice(0, -1);
+        }
+        return prev;
+      });
       setError(e instanceof Error ? e.message : "Failed to send");
       setInput(message);
     } finally {
@@ -319,7 +329,11 @@ export default function PracticeScreen({
             {transcript.map((msg, i) => (
               <Fragment key={i}>
                 <div className={`msg ${msg.role === "USER" ? "user" : "ai"}`}>
-                  {msg.content}
+                  {msg.role === "AI" ? (
+                    <MarkdownMessage content={msg.content} />
+                  ) : (
+                    msg.content
+                  )}
                 </div>
                 {verdictPlacement?.afterMessageIndex === i + 1 && (
                   <div

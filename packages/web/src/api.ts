@@ -74,6 +74,13 @@ export interface UserProgress {
   topics: TopicProgress[];
 }
 
+export interface AuthUser {
+  userId: string;
+  username: string;
+  onboarded: boolean;
+  skillLevel: SkillLevel;
+}
+
 export type LevelAvailability =
   | "mastered"
   | "recommended"
@@ -129,6 +136,34 @@ export interface StoredAttempt {
   ratingAfter: number;
   masteryBefore: number;
   masteryAfter: number;
+}
+
+export async function fetchMe(): Promise<AuthUser> {
+  return request("/auth/me");
+}
+
+export async function register(
+  username: string,
+  password: string,
+): Promise<AuthUser> {
+  return request("/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+  });
+}
+
+export async function login(
+  username: string,
+  password: string,
+): Promise<AuthUser> {
+  return request("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+  });
+}
+
+export async function logout(): Promise<void> {
+  await request("/auth/logout", { method: "POST" });
 }
 
 export async function fetchProblems(filters?: {

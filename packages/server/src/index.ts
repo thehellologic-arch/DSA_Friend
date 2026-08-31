@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -7,6 +8,7 @@ dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
+import fastifyStatic from "@fastify/static";
 import Fastify from "fastify";
 import { isSkillLevel, type SkillLevel } from "@reason/core";
 import { createProgressRepository } from "./create-progress-repo.js";
@@ -21,13 +23,21 @@ import {
   InMemorySessionStore,
 } from "./session-store.js";
 
+const isProd = process.env.NODE_ENV === "production";
 const PORT = Number(process.env.PORT ?? 3001);
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-3.6-flash";
 const OLLAMA_BASE_URL =
   process.env.OLLAMA_BASE_URL ??
-  "https://sadly-oversight-shun.ngrok-free.dev";
+  (isProd ? "" : "https://sadly-oversight-shun.ngrok-free.dev");
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "gemma4:26b";
+
+if (!GEMINI_API_KEY && !OLLAMA_BASE_URL) {
+  console.error(
+    "Set GEMINI_API_KEY (or OLLAMA_BASE_URL) before starting the server.",
+  );
+  process.exit(1);
+}
 
 loadRubrics();
 
@@ -36,183 +46,202 @@ function knownPatterns(): string[] {
 }
 
 const store = new InMemorySessionStore();
-const llm =
-  GEMINI_API_KEY
-    ? new GeminiProvider({
-        apiKey: GEMINI_API_KEY,
-        model: GEMINI_MODEL,
-      })
-    : new OllamaProvider({
-        baseUrl: OLLAMA_BASE_URL,
-        model: OLLAMA_MODEL,
-      });
+const llm = GEMINI_API_KEY
+  ? new GeminiProvider({
+      apiKey: GEMINI_API_KEY,
+      model: GEMINI_MODEL,
+    })
+  : new OllamaProvider({
+      baseUrl: OLLAMA_BASE_URL,
+      model: OLLAMA_MODEL,
+    });
 const progressRepo = await createProgressRepository();
 const progress = new ProgressService(progressRepo, () => listProblems());
 const judging = new JudgingService(store, llm, progress);
 
-const app = Fastify({ logger: true });
+const app = Fastify({ logger: true, trustProxy: true });
 await app.register(cors, { origin: true, credentials: true });
 await app.register(cookie);
 
-app.get<{ Querystring: { pattern?: string; difficulty?: string } }>(
-  "/problems",
-  async (req) => {
-    const pattern = req.query.pattern?.trim();
-    const difficulty = req.query.difficulty
-      ? Number(req.query.difficulty)
-      : undefined;
-    let problems = listProblems();
-    if (pattern) {
-      problems = problems.filter((problem) => problem.pattern === pattern);
-    }
-    if (Number.isFinite(difficulty)) {
-      problems = problems.filter((problem) => problem.difficulty === difficulty);
-    }
-    return { problems };
-  },
-);
+app.get("/health", async () => ({ ok: true }));
 
-app.get("/me/progress", async (req, reply) => {
-  const userId = await ensureGuest(req, reply, progress, knownPatterns());
-  return progress.getProgress(userId);
-});
+await app.register(async (api) => {
+  api.get<{ Querystring: { pattern?: string; difficulty?: string } }>(
+    "/problems",
+    async (req) => {
+      const pattern = req.query.pattern?.trim();
+      const difficulty = req.query.difficulty
+        ? Number(req.query.difficulty)
+        : undefined;
+      let problems = listProblems();
+      if (pattern) {
+        problems = problems.filter((problem) => problem.pattern === pattern);
+      }
+      if (Number.isFinite(difficulty)) {
+        problems = problems.filter(
+          (problem) => problem.difficulty === difficulty,
+        );
+      }
+      return { problems };
+    },
+  );
 
-app.get("/me/roadmap", async (req, reply) => {
-  const userId = await ensureGuest(req, reply, progress, knownPatterns());
-  return progress.getRoadmap(userId);
-});
-
-app.get("/me/attempts", async (req, reply) => {
-  const userId = await ensureGuest(req, reply, progress, knownPatterns());
-  return { attempts: await progress.listAttempts(userId) };
-});
-
-app.get<{ Querystring: { pattern?: string; difficulty?: string } }>(
-  "/me/recommend",
-  async (req, reply) => {
+  api.get("/me/progress", async (req, reply) => {
     const userId = await ensureGuest(req, reply, progress, knownPatterns());
-    const pattern = req.query.pattern?.trim();
-    const difficulty = req.query.difficulty
-      ? Number(req.query.difficulty)
-      : undefined;
-    const problems = await progress.recommend(userId, 5, undefined, {
-      pattern: pattern || undefined,
-      difficulty: Number.isFinite(difficulty) ? difficulty : undefined,
-    });
-    return { problems };
-  },
-);
-
-app.post<{ Body: { skillLevel?: SkillLevel } }>(
-  "/me/skill-level",
-  async (req, reply) => {
-    const skillLevel = req.body?.skillLevel;
-    if (!skillLevel || !isSkillLevel(skillLevel)) {
-      return reply.status(400).send({ error: "skillLevel is required" });
-    }
-    const userId = await ensureGuest(
-      req,
-      reply,
-      progress,
-      knownPatterns(),
-      skillLevel,
-    );
-    await progress.setSkillLevel(userId, skillLevel, knownPatterns(), true);
     return progress.getProgress(userId);
-  },
-);
+  });
 
-app.post<{ Body: { problemSlug: string } }>("/sessions", async (req, reply) => {
-  const { problemSlug } = req.body ?? {};
-  if (!problemSlug) {
-    return reply.status(400).send({ error: "problemSlug is required" });
-  }
+  api.get("/me/roadmap", async (req, reply) => {
+    const userId = await ensureGuest(req, reply, progress, knownPatterns());
+    return progress.getRoadmap(userId);
+  });
 
-  const rubric = getRubric(problemSlug);
-  if (!rubric) {
-    return reply.status(404).send({ error: "Problem not found" });
-  }
+  api.get("/me/attempts", async (req, reply) => {
+    const userId = await ensureGuest(req, reply, progress, knownPatterns());
+    return { attempts: await progress.listAttempts(userId) };
+  });
 
-  const userId = await ensureGuest(req, reply, progress, knownPatterns());
-  const session = store.create(problemSlug, rubric, userId);
-  return {
-    sessionId: session.id,
-    coreAsk: rubric.core_ask,
-    pattern: rubric.pattern,
-    difficulty: rubric.difficulty,
-    state: session.context.state,
-  };
-});
+  api.get<{ Querystring: { pattern?: string; difficulty?: string } }>(
+    "/me/recommend",
+    async (req, reply) => {
+      const userId = await ensureGuest(req, reply, progress, knownPatterns());
+      const pattern = req.query.pattern?.trim();
+      const difficulty = req.query.difficulty
+        ? Number(req.query.difficulty)
+        : undefined;
+      const problems = await progress.recommend(userId, 5, undefined, {
+        pattern: pattern || undefined,
+        difficulty: Number.isFinite(difficulty) ? difficulty : undefined,
+      });
+      return { problems };
+    },
+  );
 
-app.get<{ Params: { id: string } }>("/sessions/:id", async (req, reply) => {
-  const session = store.get(req.params.id);
-  if (!session) {
-    return reply.status(404).send({ error: "Session not found" });
-  }
+  api.post<{ Body: { skillLevel?: SkillLevel } }>(
+    "/me/skill-level",
+    async (req, reply) => {
+      const skillLevel = req.body?.skillLevel;
+      if (!skillLevel || !isSkillLevel(skillLevel)) {
+        return reply.status(400).send({ error: "skillLevel is required" });
+      }
+      const userId = await ensureGuest(
+        req,
+        reply,
+        progress,
+        knownPatterns(),
+        skillLevel,
+      );
+      await progress.setSkillLevel(userId, skillLevel, knownPatterns(), true);
+      return progress.getProgress(userId);
+    },
+  );
 
-  return {
-    sessionId: session.id,
-    problemSlug: session.problemSlug,
-    coreAsk: session.rubric.core_ask,
-    pattern: session.rubric.pattern,
-    difficulty: session.rubric.difficulty,
-    state: session.context.state,
-    hintsUsed: session.context.hintsUsed,
-    insightResults: session.context.insightResults,
-    transcript: getTranscript(session),
-    turns: session.turns,
-  };
-});
-
-app.post<{
-  Params: { id: string };
-  Body: { message: string; idempotencyKey: string };
-}>("/sessions/:id/turns", async (req, reply) => {
-  const { message, idempotencyKey } = req.body ?? {};
-  if (!message?.trim()) {
-    return reply.status(400).send({ error: "message is required" });
-  }
-  if (!idempotencyKey) {
-    return reply.status(400).send({ error: "idempotencyKey is required" });
-  }
-
-  try {
-    const result = await judging.handleTurn(
-      req.params.id,
-      message.trim(),
-      idempotencyKey,
-    );
-    return result;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    if (msg === "Session not found") {
-      return reply.status(404).send({ error: msg });
+  api.post<{ Body: { problemSlug: string } }>("/sessions", async (req, reply) => {
+    const { problemSlug } = req.body ?? {};
+    if (!problemSlug) {
+      return reply.status(400).send({ error: "problemSlug is required" });
     }
-    req.log.error(err);
-    return reply.status(502).send({ error: `Judging failed: ${msg}` });
-  }
-});
 
-app.post<{
-  Params: { id: string };
-  Body: { idempotencyKey: string };
-}>("/sessions/:id/verdict", async (req, reply) => {
-  const { idempotencyKey } = req.body ?? {};
-  if (!idempotencyKey) {
-    return reply.status(400).send({ error: "idempotencyKey is required" });
-  }
-
-  try {
-    return await judging.revealVerdict(req.params.id, idempotencyKey);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    if (message === "Session not found") {
-      return reply.status(404).send({ error: message });
+    const rubric = getRubric(problemSlug);
+    if (!rubric) {
+      return reply.status(404).send({ error: "Problem not found" });
     }
-    req.log.error(err);
-    return reply.status(500).send({ error: `Verdict failed: ${message}` });
-  }
-});
+
+    const userId = await ensureGuest(req, reply, progress, knownPatterns());
+    const session = store.create(problemSlug, rubric, userId);
+    return {
+      sessionId: session.id,
+      coreAsk: rubric.core_ask,
+      pattern: rubric.pattern,
+      difficulty: rubric.difficulty,
+      state: session.context.state,
+    };
+  });
+
+  api.get<{ Params: { id: string } }>("/sessions/:id", async (req, reply) => {
+    const session = store.get(req.params.id);
+    if (!session) {
+      return reply.status(404).send({ error: "Session not found" });
+    }
+
+    return {
+      sessionId: session.id,
+      problemSlug: session.problemSlug,
+      coreAsk: session.rubric.core_ask,
+      pattern: session.rubric.pattern,
+      difficulty: session.rubric.difficulty,
+      state: session.context.state,
+      hintsUsed: session.context.hintsUsed,
+      insightResults: session.context.insightResults,
+      transcript: getTranscript(session),
+      turns: session.turns,
+    };
+  });
+
+  api.post<{
+    Params: { id: string };
+    Body: { message: string; idempotencyKey: string };
+  }>("/sessions/:id/turns", async (req, reply) => {
+    const { message, idempotencyKey } = req.body ?? {};
+    if (!message?.trim()) {
+      return reply.status(400).send({ error: "message is required" });
+    }
+    if (!idempotencyKey) {
+      return reply.status(400).send({ error: "idempotencyKey is required" });
+    }
+
+    try {
+      const result = await judging.handleTurn(
+        req.params.id,
+        message.trim(),
+        idempotencyKey,
+      );
+      return result;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      if (msg === "Session not found") {
+        return reply.status(404).send({ error: msg });
+      }
+      req.log.error(err);
+      return reply.status(502).send({ error: `Judging failed: ${msg}` });
+    }
+  });
+
+  api.post<{
+    Params: { id: string };
+    Body: { idempotencyKey: string };
+  }>("/sessions/:id/verdict", async (req, reply) => {
+    const { idempotencyKey } = req.body ?? {};
+    if (!idempotencyKey) {
+      return reply.status(400).send({ error: "idempotencyKey is required" });
+    }
+
+    try {
+      return await judging.revealVerdict(req.params.id, idempotencyKey);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      if (message === "Session not found") {
+        return reply.status(404).send({ error: message });
+      }
+      req.log.error(err);
+      return reply.status(500).send({ error: `Verdict failed: ${message}` });
+    }
+  });
+}, { prefix: "/api" });
+
+const webDist = path.resolve(__dirname, "../../web/dist");
+if (fs.existsSync(path.join(webDist, "index.html"))) {
+  await app.register(fastifyStatic, {
+    root: webDist,
+    wildcard: false,
+  });
+  app.setNotFoundHandler((req, reply) => {
+    if (req.method !== "GET" || req.url.startsWith("/api")) {
+      return reply.status(404).send({ error: "Not found" });
+    }
+    return reply.sendFile("index.html");
+  });
+}
 
 app.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
   if (err) {

@@ -3,7 +3,7 @@ services:
     name: dsa-friend
     runtime: node
     plan: free
-    buildCommand: pnpm install --frozen-lockfile && pnpm build
+    buildCommand: pnpm install --frozen-lockfile --prod=false && pnpm build
     startCommand: node packages/server/dist/index.js
     healthCheckPath: /health
     envVars:

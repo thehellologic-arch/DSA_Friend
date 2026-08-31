@@ -24,6 +24,20 @@ export interface OpenAIConfig {
   apiKey: string;
   baseUrl: string;
   model: string;
+  fallbackModels?: string[];
+  referer?: string;
+  title?: string;
+}
+
+function extractJson(text: string): unknown {
+  const trimmed = text.trim();
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    const match = trimmed.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("No JSON object found in LLM response");
+    return JSON.parse(match[0]);
+  }
 }
 
 function buildClassifyPayload(input: ClassifyRequest, rubric: Rubric) {
@@ -50,71 +64,56 @@ export class OpenAIProvider implements LLMProvider {
     input: ClassifyRequest,
     rubric: Rubric,
   ): Promise<ClassifyResult> {
-    const response = await fetch(
-      `${this.config.baseUrl.replace(/\/$/, "")}/v1/chat/completions`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "api-key": this.config.apiKey,
-          "Ocp-Apim-Subscription-Key": this.config.apiKey,
-        },
-        body: JSON.stringify({
-          model: this.config.model,
-          temperature: 0,
-          max_tokens: 1024,
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: CLASSIFIER_SYSTEM_PROMPT },
-            {
-              role: "user",
-              content: JSON.stringify(buildClassifyPayload(input, rubric)),
-            },
-          ],
-        }),
-      },
+    const content = await this.chat(
+      CLASSIFIER_SYSTEM_PROMPT,
+      JSON.stringify(buildClassifyPayload(input, rubric)),
+      true,
     );
-
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`OpenAI API error ${response.status}: ${body}`);
-    }
-
-    const data = (await response.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) throw new Error("Empty OpenAI response");
-
-    return ClassifyResultSchema.parse(JSON.parse(content));
+    return ClassifyResultSchema.parse(extractJson(content));
   }
 
   async clarify(input: ClarifyRequest, rubric: Rubric): Promise<string> {
+    return this.chat(
+      CLARIFICATION_SYSTEM_PROMPT,
+      JSON.stringify({
+        coreAsk: rubric.core_ask,
+        optimal: rubric.optimal,
+        edgeCases: rubric.edge_cases,
+        recentConversation: input.history.slice(-6),
+        question: input.question,
+      }),
+      false,
+    );
+  }
+
+  private async chat(
+    systemPrompt: string,
+    userContent: string,
+    jsonMode: boolean,
+  ): Promise<string> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${this.config.apiKey}`,
+    };
+    if (this.config.referer) headers["HTTP-Referer"] = this.config.referer;
+    if (this.config.title) headers["X-Title"] = this.config.title;
+
     const response = await fetch(
-      `${this.config.baseUrl.replace(/\/$/, "")}/v1/chat/completions`,
+      `${this.config.baseUrl.replace(/\/$/, "")}/chat/completions`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "api-key": this.config.apiKey,
-          "Ocp-Apim-Subscription-Key": this.config.apiKey,
-        },
+        headers,
         body: JSON.stringify({
           model: this.config.model,
           temperature: 0,
-          max_tokens: 1024,
+          max_tokens: 2048,
+          ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
+          ...(this.config.fallbackModels?.length
+            ? { models: this.config.fallbackModels }
+            : {}),
           messages: [
-            { role: "system", content: CLARIFICATION_SYSTEM_PROMPT },
-            {
-              role: "user",
-              content: JSON.stringify({
-                coreAsk: rubric.core_ask,
-                optimal: rubric.optimal,
-                edgeCases: rubric.edge_cases,
-                recentConversation: input.history.slice(-6),
-                question: input.question,
-              }),
-            },
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userContent },
           ],
         }),
       },
@@ -122,14 +121,14 @@ export class OpenAIProvider implements LLMProvider {
 
     if (!response.ok) {
       const body = await response.text();
-      throw new Error(`OpenAI API error ${response.status}: ${body}`);
+      throw new Error(`OpenRouter API error ${response.status}: ${body}`);
     }
 
     const data = (await response.json()) as {
       choices?: { message?: { content?: string } }[];
     };
     const content = data.choices?.[0]?.message?.content?.trim();
-    if (!content) throw new Error("Empty OpenAI clarification response");
+    if (!content) throw new Error("Empty OpenRouter response");
     return content;
   }
 }

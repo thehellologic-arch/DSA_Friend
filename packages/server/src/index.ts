@@ -16,6 +16,7 @@ import { GeminiProvider } from "./gemini-provider.js";
 import { ensureGuest } from "./guest.js";
 import { JudgingService } from "./judging-service.js";
 import { OllamaProvider } from "./ollama-provider.js";
+import { OpenAIProvider } from "./openai-provider.js";
 import { ProgressService } from "./progress-service.js";
 import { getRubric, listProblems, loadRubrics } from "./rubric-store.js";
 import {
@@ -25,6 +26,16 @@ import {
 
 const isProd = process.env.NODE_ENV === "production";
 const PORT = Number(process.env.PORT ?? 3001);
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_MODEL =
+  process.env.OPENROUTER_MODEL ?? "google/gemini-3.6-flash";
+const OPENROUTER_FALLBACK_MODELS = (
+  process.env.OPENROUTER_FALLBACK_MODELS ??
+  "google/gemini-2.5-flash,deepseek/deepseek-chat"
+)
+  .split(",")
+  .map((model) => model.trim())
+  .filter(Boolean);
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-3.6-flash";
 const OLLAMA_BASE_URL =
@@ -32,9 +43,9 @@ const OLLAMA_BASE_URL =
   (isProd ? "" : "https://sadly-oversight-shun.ngrok-free.dev");
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "gemma4:26b";
 
-if (!GEMINI_API_KEY && !OLLAMA_BASE_URL) {
+if (!OPENROUTER_API_KEY && !GEMINI_API_KEY && !OLLAMA_BASE_URL) {
   console.error(
-    "Set GEMINI_API_KEY (or OLLAMA_BASE_URL) before starting the server.",
+    "Set OPENROUTER_API_KEY (or GEMINI_API_KEY / OLLAMA_BASE_URL) before starting the server.",
   );
   process.exit(1);
 }
@@ -46,15 +57,32 @@ function knownPatterns(): string[] {
 }
 
 const store = new InMemorySessionStore();
-const llm = GEMINI_API_KEY
-  ? new GeminiProvider({
-      apiKey: GEMINI_API_KEY,
-      model: GEMINI_MODEL,
+const llm = OPENROUTER_API_KEY
+  ? new OpenAIProvider({
+      apiKey: OPENROUTER_API_KEY,
+      baseUrl:
+        process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1",
+      model: OPENROUTER_MODEL,
+      fallbackModels: OPENROUTER_FALLBACK_MODELS,
+      referer:
+        process.env.OPENROUTER_REFERER ??
+        "https://github.com/thehellologic-arch/DSA_Friend",
+      title: "DSA Friend",
     })
-  : new OllamaProvider({
-      baseUrl: OLLAMA_BASE_URL,
-      model: OLLAMA_MODEL,
-    });
+  : GEMINI_API_KEY
+    ? new GeminiProvider({
+        apiKey: GEMINI_API_KEY,
+        model: GEMINI_MODEL,
+      })
+    : new OllamaProvider({
+        baseUrl: OLLAMA_BASE_URL,
+        model: OLLAMA_MODEL,
+      });
+const llmLabel = OPENROUTER_API_KEY
+  ? `OpenRouter (${OPENROUTER_MODEL})`
+  : GEMINI_API_KEY
+    ? `Gemini (${GEMINI_MODEL})`
+    : `Ollama ${OLLAMA_BASE_URL} (${OLLAMA_MODEL})`;
 const progressRepo = await createProgressRepository();
 const progress = new ProgressService(progressRepo, () => listProblems());
 const judging = new JudgingService(store, llm, progress);
@@ -249,9 +277,5 @@ app.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
     process.exit(1);
   }
   console.log(`Server listening on http://localhost:${PORT}`);
-  console.log(
-    GEMINI_API_KEY
-      ? `LLM: Gemini (${GEMINI_MODEL})`
-      : `LLM: ${OLLAMA_BASE_URL} (${OLLAMA_MODEL})`,
-  );
+  console.log(`LLM: ${llmLabel}`);
 });

@@ -11,7 +11,9 @@ services:
         value: 22
       - key: NODE_ENV
         value: production
-      - key: GEMINI_MODEL
-        value: gemini-3.6-flash
-      - key: GEMINI_API_KEY
+      - key: OPENROUTER_MODEL
+        value: google/gemini-3.6-flash
+      - key: OPENROUTER_FALLBACK_MODELS
+        value: google/gemini-2.5-flash,deepseek/deepseek-chat
+      - key: OPENROUTER_API_KEY
         sync: false

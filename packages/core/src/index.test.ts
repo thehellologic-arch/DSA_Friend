@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
 import {
+  actionToAiMessage,
   ApproachEvaluationSchema,
   ApproachModelSchema,
   computeScore,
@@ -110,9 +111,60 @@ function makeCtx(overrides: Partial<SessionContext> = {}): SessionContext {
     selfCorrections: 0,
     hadWrongApproach: false,
     lastAcceptableAlternative: null,
+    approachModel: null,
+    novelChallengeUsed: false,
+    pendingNovelChallenge: null,
     ...overrides,
   };
 }
+
+describe("novel session and action contracts", () => {
+  it("defaults novel session fields to inactive state", () => {
+    const ctx = makeCtx();
+    expect(ctx.approachModel).toBeNull();
+    expect(ctx.novelChallengeUsed).toBe(false);
+    expect(ctx.pendingNovelChallenge).toBeNull();
+  });
+
+  it("maps novel_challenge actions to their challenge text", () => {
+    expect(
+      actionToAiMessage({
+        kind: "novel_challenge",
+        text: "When do you insert the current value?",
+      }),
+    ).toBe("When do you insert the current value?");
+  });
+
+  it("renders incorrect and plausible_unverified verdict labels", () => {
+    const baseVerdict = {
+      score: 40,
+      insights: [],
+      suggestion: "Check the failing case.",
+      idealSolution: {
+        approach: rubric.optimal.approach,
+        keyInsight: rubric.optimal.key_insight,
+        complexity: rubric.optimal.complexity,
+        examples: rubric.optimal.examples,
+      },
+      hintsUsed: 0,
+      exchanges: [],
+    };
+
+    expect(
+      actionToAiMessage({
+        kind: "verdict",
+        verdict: { ...baseVerdict, label: "incorrect" },
+      }),
+    ).toContain("Approach is incorrect");
+
+    expect(
+      actionToAiMessage({
+        kind: "verdict",
+        verdict: { ...baseVerdict, label: "plausible_unverified" },
+      }),
+    ).toContain("Plausible, but not verified");
+  });
+});
 
 function classify(
   partial: Partial<ClassifyResult> & {
@@ -500,6 +552,9 @@ describe("two-sum acceptable alternative", () => {
         selfCorrections: 0,
         hadWrongApproach: false,
         lastAcceptableAlternative: null,
+        approachModel: null,
+        novelChallengeUsed: false,
+        pendingNovelChallenge: null,
       },
       twoSum,
       classify({

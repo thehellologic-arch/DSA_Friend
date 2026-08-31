@@ -7,6 +7,8 @@ function verdictLabel(verdict: Verdict): string {
     acceptable: "Acceptable approach",
     buggy: "Approach has a bug",
     incomplete: "Incomplete reasoning",
+    incorrect: "Approach is incorrect",
+    plausible_unverified: "Plausible, but not verified",
   };
   return labels[verdict.label];
 }

@@ -386,6 +386,8 @@ export function actionToAiMessage(action: TurnAction): string {
       return action.text;
     case "counterexample":
       return action.text;
+    case "novel_challenge":
+      return action.text;
     case "verdict_ready":
       return action.text;
     case "clarification":
@@ -399,7 +401,11 @@ export function actionToAiMessage(action: TurnAction): string {
             ? "Acceptable approach"
             : v.label === "buggy"
               ? "Approach has a bug"
-              : "Incomplete reasoning";
+              : v.label === "incorrect"
+                ? "Approach is incorrect"
+                : v.label === "plausible_unverified"
+                  ? "Plausible, but not verified"
+                  : "Incomplete reasoning";
       return `${labelText}. Score: ${v.score}/100. ${v.suggestion}`;
     }
   }

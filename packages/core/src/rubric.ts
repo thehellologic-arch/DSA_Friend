@@ -181,6 +181,9 @@ export interface SessionContext {
   selfCorrections: number;
   hadWrongApproach: boolean;
   lastAcceptableAlternative: string | null;
+  approachModel: ApproachModel | null;
+  novelChallengeUsed: boolean;
+  pendingNovelChallenge: string | null;
 }
 
 export interface VerdictInsight {
@@ -198,7 +201,13 @@ export interface FollowUpExchange {
 }
 
 export interface Verdict {
-  label: "optimal" | "acceptable" | "buggy" | "incomplete";
+  label:
+    | "optimal"
+    | "acceptable"
+    | "buggy"
+    | "incomplete"
+    | "incorrect"
+    | "plausible_unverified";
   score: number;
   insights: VerdictInsight[];
   suggestion: string;
@@ -216,6 +225,7 @@ export type TurnAction =
   | { kind: "follow_up"; insightId: string; text: string }
   | { kind: "hint"; insightId: string; text: string }
   | { kind: "counterexample"; insightId: string; input: string; text: string }
+  | { kind: "novel_challenge"; text: string }
   | { kind: "verdict_ready"; text: string }
   | { kind: "verdict"; verdict: Verdict }
   | { kind: "clarification"; text: string };

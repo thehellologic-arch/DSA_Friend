@@ -1,4 +1,4 @@
-# DSA Friend — High-Level Design
+# CoderBhaiya — High-Level Design
 
 This document describes the system as implemented: how a student talks through a
 DSA problem, how the server grades that reasoning, and how progress, ranking,
@@ -12,7 +12,7 @@ Related notes:
 
 ## 1. Product
 
-DSA Friend is a Socratic practice app. The student explains an approach in
+CoderBhaiya is a Socratic practice app. The student explains an approach in
 natural language. The system does **not** run submitted code. It grades the
 explanation against a versioned **rubric** (problem contract), asks follow-up
 probes or at most one hint, then returns a verdict and updates per-topic Elo.

@@ -110,8 +110,8 @@ const llm = OPENROUTER_API_KEY
       fallbackModels: OPENROUTER_FALLBACK_MODELS,
       referer:
         process.env.OPENROUTER_REFERER ??
-        "https://github.com/thehellologic-arch/DSA_Friend",
-      title: "DSA Friend",
+        "https://github.com/thehellologic-arch/CoderBhaiya",
+      title: "CoderBhaiya",
     })
   : GEMINI_API_KEY
     ? new GeminiProvider({

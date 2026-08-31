@@ -1,4 +1,4 @@
-# PRD: "Reason" — a reasoning gym for the AI era
+# PRD: CoderBhaiya — a reasoning gym for the AI era
 
 > Working title. Status: draft for review. Owner: TBD.
 

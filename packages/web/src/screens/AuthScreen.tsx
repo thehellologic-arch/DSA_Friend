@@ -32,7 +32,7 @@ export default function AuthScreen({ onAuthed }: Props) {
   return (
     <div className="app auth-app">
       <header className="header">
-        <h1 className="screen-title">DSA Friend</h1>
+        <h1 className="screen-title">CoderBhaiya</h1>
       </header>
       <section className="card auth-card">
         <h2>{mode === "login" ? "Log in" : "Create account"}</h2>

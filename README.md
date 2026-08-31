@@ -1,4 +1,4 @@
-# DSA_Friend
+# CoderBhaiya
 
 An AI-powered app that keeps your DSA reasoning sharp — you explain an approach out loud (or in text), and a Socratic loop grades the reasoning against a pre-authored rubric.
 
@@ -26,11 +26,11 @@ GitHub stores the code and runs CI on every push (`pnpm test` + `pnpm build`). I
 
 The public URL comes from [Render](https://render.com), which deploys from this GitHub repo:
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/thehellologic-arch/DSA_Friend)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/thehellologic-arch/CoderBhaiya)
 
 1. Click **Deploy to Render** and sign in with GitHub.
 2. Set `OPENROUTER_API_KEY` when prompted.
-3. Render prints a URL like `https://dsa-friend.onrender.com`.
+3. Render prints a URL like `https://dsa-friend-epd7.onrender.com`.
 
 The free instance sleeps after idle time, so the first load after a pause can take ~30–60 seconds. Progress is in-memory on that plan unless you later attach a `DATABASE_URL` (Neon or Render Postgres).
 

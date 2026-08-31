@@ -48,7 +48,7 @@ export default function OnboardingScreen({
 
   return (
     <div className="card onboarding-card">
-      <h1 className="screen-title">Welcome to Reason</h1>
+      <h1 className="screen-title">Welcome to CoderBhaiya</h1>
       <p className="meta">
         Continue as a guest. Nothing is locked — pick a starting level, or skip
         straight into practice.

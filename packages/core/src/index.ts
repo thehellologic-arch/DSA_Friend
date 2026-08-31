@@ -81,4 +81,6 @@ export {
   recommendProblems,
 } from "./recommend.js";
 
+export { matchProblemQuery, searchProblems } from "./problem-search.js";
+
 export { evaluateEvidence } from "./approach-validation.js";

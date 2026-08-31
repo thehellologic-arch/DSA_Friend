@@ -1,6 +1,5 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
-import type { Verdict } from "@reason/core";
-import { MAX_HINTS_PER_SESSION } from "@reason/core";
+import { MAX_HINTS_PER_SESSION, searchProblems, type Verdict } from "@reason/core";
 import {
   fetchAttempts,
   fetchProblems,
@@ -19,6 +18,14 @@ import VerdictCard from "../components/VerdictCard";
 import MarkdownMessage from "../components/MarkdownMessage";
 
 type Screen = "start" | "loop";
+
+const SEARCH_RESULT_LIMIT = 20;
+const ASK_SNIPPET_LENGTH = 90;
+
+function askSnippet(text: string): string {
+  if (text.length <= ASK_SNIPPET_LENGTH) return text;
+  return `${text.slice(0, ASK_SNIPPET_LENGTH).trimEnd()}…`;
+}
 
 export default function PracticeScreen({
   requestedSlug,
@@ -49,6 +56,7 @@ export default function PracticeScreen({
   } | null>(null);
   const [verdictReady, setVerdictReady] = useState(false);
   const [input, setInput] = useState("");
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [turnCount, setTurnCount] = useState(0);
@@ -87,6 +95,8 @@ export default function PracticeScreen({
   }, []);
 
   const problem = problems[currentProblemIndex];
+  const searchHits = searchProblems(problems, query).slice(0, SEARCH_RESULT_LIMIT);
+  const searching = query.trim().length > 0;
 
   const beginProblem = useCallback(async (target: Problem) => {
     setLoading(true);
@@ -123,6 +133,16 @@ export default function PracticeScreen({
   const handleStart = useCallback(() => {
     if (problem) void beginProblem(problem);
   }, [beginProblem, problem]);
+
+  const handleSelectSearchResult = useCallback(
+    (slug: string) => {
+      const index = problems.findIndex((item) => item.slug === slug);
+      if (index < 0) return;
+      setCurrentProblemIndex(index);
+      setQuery("");
+    },
+    [problems],
+  );
 
   const archiveCurrent = useCallback(() => {
     if (!session || transcript.length === 0) return;
@@ -294,18 +314,63 @@ export default function PracticeScreen({
       </header>
 
       {screen === "start" && problem && (
-        <div className="card">
-          <span className="badge">Boss · Reasoning</span>
-          {problem.title && <h2 className="roadmap-pattern">{problem.title}</h2>}
-          <p className="core-ask">{problem.coreAsk}</p>
-          <p className="meta">
-            {problem.pattern} · {problem.difficulty} · ~2 min · text reply
-          </p>
-          <button className="btn" onClick={handleStart} disabled={loading}>
-            {loading ? "Starting..." : "Start reasoning"}
-          </button>
-          {error && <p className="error">{error}</p>}
-        </div>
+        <>
+          <div className="problem-search">
+            <label className="problem-search-label" htmlFor="problem-search">
+              Find a problem
+            </label>
+            <input
+              id="problem-search"
+              className="problem-search-input"
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by title or description…"
+              autoComplete="off"
+            />
+            {searching && (
+              <ul className="problem-search-results">
+                {searchHits.length === 0 ? (
+                  <li className="problem-search-empty">No problems match.</li>
+                ) : (
+                  searchHits.map((hit) => (
+                    <li key={hit.slug}>
+                      <button
+                        type="button"
+                        className="problem-search-result"
+                        onClick={() => handleSelectSearchResult(hit.slug)}
+                      >
+                        <span className="problem-search-title">
+                          {hit.title ?? hit.slug}
+                        </span>
+                        <span className="problem-search-ask">
+                          {askSnippet(hit.coreAsk)}
+                        </span>
+                        <span className="meta">
+                          {hit.pattern} · {hit.difficulty}
+                        </span>
+                      </button>
+                    </li>
+                  ))
+                )}
+              </ul>
+            )}
+          </div>
+          <div className="card">
+            <span className="badge">Boss · Reasoning</span>
+            {problem.title && (
+              <h2 className="roadmap-pattern">{problem.title}</h2>
+            )}
+            <p className="core-ask">{problem.coreAsk}</p>
+            <p className="meta">
+              {problem.pattern} · {problem.difficulty} · ~2 min · text reply
+            </p>
+            <button className="btn" onClick={handleStart} disabled={loading}>
+              {loading ? "Starting..." : "Start reasoning"}
+            </button>
+            {error && <p className="error">{error}</p>}
+          </div>
+        </>
       )}
 
       {screen === "loop" && session && (

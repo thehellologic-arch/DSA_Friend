@@ -71,6 +71,82 @@ body {
   flex-direction: column;
 }
 
+.problem-search {
+  margin-bottom: 0.75rem;
+}
+
+.problem-search-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #a8a8ff;
+  margin-bottom: 0.35rem;
+}
+
+.problem-search-input {
+  width: 100%;
+  background: #12121a;
+  border: 1px solid #2a2a35;
+  border-radius: 8px;
+  color: #e8e8ed;
+  padding: 0.65rem 0.75rem;
+  font-size: 1rem;
+}
+
+.problem-search-input:focus {
+  outline: none;
+  border-color: #5b5bf0;
+}
+
+.problem-search-results {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  max-height: 12rem;
+  overflow-y: auto;
+  border: 1px solid #2a2a35;
+  border-radius: 8px;
+  background: #12121a;
+}
+
+.problem-search-results li + li .problem-search-result {
+  border-top: 1px solid #2a2a35;
+}
+
+.problem-search-result {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: inherit;
+  padding: 0.65rem 0.75rem;
+  cursor: pointer;
+}
+
+.problem-search-result:hover,
+.problem-search-result:focus-visible {
+  background: #1a1a2a;
+}
+
+.problem-search-title {
+  font-weight: 600;
+}
+
+.problem-search-ask {
+  font-size: 0.8rem;
+  color: #888;
+  line-height: 1.35;
+}
+
+.problem-search-empty {
+  padding: 0.75rem;
+  color: #888;
+  font-size: 0.9rem;
+}
+
 .core-ask {
   font-size: 1.1rem;
   font-weight: 500;

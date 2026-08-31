@@ -54,30 +54,37 @@ export default function PracticeScreen({
   const [turnCount, setTurnCount] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const loadHistory = useCallback(async (excludeSessionId?: string) => {
-    try {
-      const attempts = await fetchAttempts();
-      setArchivedAttempts(
-        attempts
-          .filter((attempt) => attempt.sessionId !== excludeSessionId)
-          .map((attempt) => ({
-            id: attempt.id,
-            coreAsk: attempt.coreAsk,
-            transcript: attempt.transcript,
-            verdict: attempt.verdict,
-          })),
-      );
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load history");
-    }
-  }, []);
+  const loadHistory = useCallback(
+    async (problemSlug: string, excludeSessionId?: string) => {
+      try {
+        const attempts = await fetchAttempts();
+        setArchivedAttempts(
+          attempts
+            .filter(
+              (attempt) =>
+                attempt.problemSlug === problemSlug &&
+                attempt.sessionId !== excludeSessionId,
+            )
+            .map((attempt) => ({
+              id: attempt.id,
+              problemSlug: attempt.problemSlug,
+              coreAsk: attempt.coreAsk,
+              transcript: attempt.transcript,
+              verdict: attempt.verdict,
+            })),
+        );
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to load history");
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     fetchProblems()
       .then(setProblems)
       .catch((e) => setError(e.message));
-    void loadHistory();
-  }, [loadHistory]);
+  }, []);
 
   const problem = problems[currentProblemIndex];
 
@@ -93,12 +100,13 @@ export default function PracticeScreen({
       setVerdictReady(false);
       setTurnCount(0);
       setScreen("loop");
+      await loadHistory(target.slug, s.sessionId);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to start");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadHistory]);
 
   useEffect(() => {
     if (!requestedSlug || problems.length === 0) return;
@@ -120,6 +128,7 @@ export default function PracticeScreen({
     if (!session || transcript.length === 0) return;
     setArchivedAttempts((attempts) => [
       {
+        problemSlug: session.problemSlug,
         coreAsk: session.coreAsk,
         transcript,
         verdict: verdictPlacement?.verdict ?? null,
@@ -129,6 +138,7 @@ export default function PracticeScreen({
   }, [session, transcript, verdictPlacement]);
 
   const handleBack = useCallback(() => {
+    const slug = session?.problemSlug ?? problem?.slug;
     archiveCurrent();
     setScreen("start");
     setSession(null);
@@ -139,8 +149,8 @@ export default function PracticeScreen({
     setTurnCount(0);
     setInput("");
     setError(null);
-    void loadHistory();
-  }, [archiveCurrent, loadHistory]);
+    if (slug) void loadHistory(slug);
+  }, [archiveCurrent, loadHistory, session, problem]);
 
   const handleSend = useCallback(async () => {
     if (!session || !input.trim() || loading) return;
@@ -165,7 +175,7 @@ export default function PracticeScreen({
           progress: result.progress,
           afterMessageIndex: result.transcript.length,
         });
-        void loadHistory(session.sessionId);
+        void loadHistory(session.problemSlug, session.sessionId);
       }
     } catch (e) {
       setTranscript((prev) => {
@@ -203,7 +213,7 @@ export default function PracticeScreen({
           progress: result.progress,
           afterMessageIndex: result.transcript.length,
         });
-        void loadHistory(session.sessionId);
+        void loadHistory(session.problemSlug, session.sessionId);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to reveal verdict");

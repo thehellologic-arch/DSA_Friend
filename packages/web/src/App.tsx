@@ -99,7 +99,11 @@ export default function App() {
           />
         </div>
         <div className={tab === "profile" ? "screen-panel" : "screen-panel hidden"}>
-          <ProfileScreen username={authUser.username} onLogout={handleLogout} />
+          <ProfileScreen
+            username={authUser.username}
+            onLogout={handleLogout}
+            onPractice={startPractice}
+          />
         </div>
       </main>
       {error && <p className="error">{error}</p>}

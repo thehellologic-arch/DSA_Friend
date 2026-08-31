@@ -6,6 +6,7 @@ export type ChatMessage = { role: "USER" | "AI"; content: string };
 
 export type ArchivedAttempt = {
   id?: string;
+  problemSlug?: string;
   coreAsk: string;
   transcript: ChatMessage[];
   verdict: Verdict | null;
@@ -13,8 +14,11 @@ export type ArchivedAttempt = {
 
 export default function AttemptHistory({
   attempts,
+  onOpenProblem,
 }: {
   attempts: ArchivedAttempt[];
+  /** When set, attempt titles link to that problem (e.g. Profile history). */
+  onOpenProblem?: (problemSlug: string) => void;
 }) {
   if (attempts.length === 0) return null;
 
@@ -23,9 +27,34 @@ export default function AttemptHistory({
       {attempts.map((attempt, attemptIndex) => (
         <details className="attempt-history" key={attempt.id ?? attemptIndex}>
           <summary>
-            Attempt {attemptIndex + 1}: {attempt.coreAsk}
+            {onOpenProblem && attempt.problemSlug ? (
+              <button
+                type="button"
+                className="attempt-history-link"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onOpenProblem(attempt.problemSlug!);
+                }}
+              >
+                Attempt {attemptIndex + 1}: {attempt.coreAsk}
+              </button>
+            ) : (
+              <>
+                Attempt {attemptIndex + 1}: {attempt.coreAsk}
+              </>
+            )}
           </summary>
           <div className="attempt-history-content">
+            {onOpenProblem && attempt.problemSlug && (
+              <button
+                type="button"
+                className="btn btn-secondary attempt-open-btn"
+                onClick={() => onOpenProblem(attempt.problemSlug!)}
+              >
+                Open this problem
+              </button>
+            )}
             {attempt.transcript.map((message, messageIndex) => (
               <div
                 key={messageIndex}

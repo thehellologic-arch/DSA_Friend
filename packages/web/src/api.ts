@@ -32,6 +32,7 @@ export interface Problem {
 
 export interface SessionStart {
   sessionId: string;
+  problemSlug: string;
   coreAsk: string;
   title?: string;
   topic?: string;

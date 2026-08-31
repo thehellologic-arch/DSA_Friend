@@ -266,6 +266,22 @@ body {
   padding: 0.75rem;
 }
 
+.attempt-history-link {
+  all: unset;
+  cursor: pointer;
+  color: #a8a8ff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.attempt-history-link:hover {
+  color: #c4c4ff;
+}
+
+.attempt-open-btn {
+  align-self: flex-start;
+}
+
 .attempt-history-content {
   display: flex;
   flex-direction: column;

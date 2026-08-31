@@ -20,9 +20,14 @@ const LEVELS: { id: SkillLevel; label: string }[] = [
 interface Props {
   username: string;
   onLogout: () => void;
+  onPractice: (slug: string) => void;
 }
 
-export default function ProfileScreen({ username, onLogout }: Props) {
+export default function ProfileScreen({
+  username,
+  onLogout,
+  onPractice,
+}: Props) {
   const [progress, setProgress] = useState<UserProgress | null>(null);
   const [attempts, setAttempts] = useState<StoredAttempt[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -157,10 +162,12 @@ export default function ProfileScreen({ username, onLogout }: Props) {
           <AttemptHistory
             attempts={attempts.map((attempt) => ({
               id: attempt.id,
+              problemSlug: attempt.problemSlug,
               coreAsk: attempt.coreAsk,
               transcript: attempt.transcript,
               verdict: attempt.verdict,
             }))}
+            onOpenProblem={onPractice}
           />
         )}
       </section>

@@ -338,6 +338,7 @@ await app.register(async (api) => {
     const summary = listProblems().find((problem) => problem.slug === problemSlug);
     return {
       sessionId: session.id,
+      problemSlug,
       coreAsk: rubric.core_ask,
       title: summary?.title,
       topic: summary?.topic,

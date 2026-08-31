@@ -26,7 +26,7 @@ GitHub stores the code and runs CI on every push (`pnpm test` + `pnpm build`). I
 
 The public URL comes from [Render](https://render.com), which deploys from this GitHub repo:
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/thehellologic-arch/CoderBhaiya)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/thehellologic-arch/DSA_Friend)
 
 1. Click **Deploy to Render** and sign in with GitHub.
 2. Set `OPENROUTER_API_KEY` when prompted.

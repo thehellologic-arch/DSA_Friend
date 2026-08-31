@@ -28,16 +28,41 @@ export default function VerdictCard({
   progress?: ProgressUpdate | null;
   id?: string;
 }) {
+  const unverified = verdict.label === "plausible_unverified";
+  const showRatingDelta = Boolean(progress && progress.ratingEligible !== false);
+  const evidence =
+    progress?.validationEvidence?.filter((item) => item.trim().length > 0) ??
+    (verdict.suggestion.trim() ? [verdict.suggestion] : []);
+
   return (
     <div className="verdict-card" id={id}>
       <p className="meta verdict-kicker">VERDICT</p>
       <h2 className="verdict-title">{verdictLabel(verdict)}</h2>
-      <p className="score">{verdict.score} / 100</p>
+      {unverified ? (
+        <p className="unverified-note">
+          No rating change. The verbal explanation did not provide enough evidence for a
+          definitive verdict.
+        </p>
+      ) : (
+        <p className="score">{verdict.score} / 100</p>
+      )}
 
-      {progress && (
+      {unverified && evidence.length > 0 && (
+        <div className="validation-evidence">
+          <p className="meta">Unresolved evidence</p>
+          <ul>
+            {evidence.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {showRatingDelta && progress && (
         <div className="progress-delta">
           <p className="meta">
-            Rating {progress.pattern} {formatDelta(progress.ratingBefore, progress.ratingAfter)}
+            Rating {progress.pattern}{" "}
+            {formatDelta(progress.ratingBefore, progress.ratingAfter)}
           </p>
           <p className="meta">
             Mastery {formatDelta(progress.masteryBefore, progress.masteryAfter)}%
@@ -45,7 +70,9 @@ export default function VerdictCard({
           {progress.newlyMasteredInsights.length > 0 && (
             <p className="meta newly-mastered">
               Newly mastered:{" "}
-              {progress.newlyMasteredInsights.map((insight) => insight.desc).join(", ")}
+              {progress.newlyMasteredInsights
+                .map((insight) => insight.desc)
+                .join(", ")}
             </p>
           )}
           {progress.recommendedNext && (
@@ -56,23 +83,27 @@ export default function VerdictCard({
         </div>
       )}
 
-      <p className="meta">Insights</p>
-      <ul className="insights">
-        {verdict.insights.map((insight) => (
-          <li key={insight.id} className={insight.status}>
-            {insight.desc}
-          </li>
-        ))}
-      </ul>
+      {!unverified && (
+        <>
+          <p className="meta">Insights</p>
+          <ul className="insights">
+            {verdict.insights.map((insight) => (
+              <li key={insight.id} className={insight.status}>
+                {insight.desc}
+              </li>
+            ))}
+          </ul>
 
-      {verdict.hintsUsed > 0 && (
-        <p className="meta">
-          −{verdict.hintsUsed * 10} used {verdict.hintsUsed} hint
-          {verdict.hintsUsed > 1 ? "s" : ""}
-        </p>
+          {verdict.hintsUsed > 0 && (
+            <p className="meta">
+              −{verdict.hintsUsed * 10} used {verdict.hintsUsed} hint
+              {verdict.hintsUsed > 1 ? "s" : ""}
+            </p>
+          )}
+
+          <div className="suggestion">Next: {verdict.suggestion}</div>
+        </>
       )}
-
-      <div className="suggestion">Next: {verdict.suggestion}</div>
 
       <section className="ideal-solution">
         <p className="meta">IDEAL SOLUTION</p>

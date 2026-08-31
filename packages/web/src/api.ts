@@ -53,6 +53,10 @@ export interface ProgressUpdate {
   masteryAfter: number;
   newlyMasteredInsights: Verdict["insights"];
   recommendedNext: Problem | null;
+  ratingEligible: boolean;
+  ratingDelta: number;
+  validationStatus: Verdict["label"];
+  validationEvidence: string[];
 }
 
 export interface TurnResponse {

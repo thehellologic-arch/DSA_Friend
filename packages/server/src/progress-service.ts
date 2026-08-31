@@ -41,6 +41,21 @@ export interface ProgressUpdate {
   masteryAfter: number;
   newlyMasteredInsights: Verdict["insights"];
   recommendedNext: RecommendableProblem | null;
+  ratingEligible: boolean;
+  ratingDelta: number;
+  validationStatus: Verdict["label"];
+  validationEvidence: string[];
+}
+
+function validationEvidenceFrom(verdict: Verdict): string[] {
+  const evidence: string[] = [];
+  const suggestion = verdict.suggestion.trim();
+  if (suggestion) evidence.push(suggestion);
+  return evidence;
+}
+
+function isRatingEligible(label: Verdict["label"]): boolean {
+  return label !== "plausible_unverified";
 }
 
 export interface UserProgress {
@@ -158,10 +173,59 @@ export class ProgressService {
           input.userId,
           existing.problemSlug,
         ),
+        ratingEligible: isRatingEligible(existing.verdictLabel),
+        ratingDelta: existing.ratingAfter - existing.ratingBefore,
+        validationStatus: existing.verdictLabel,
+        validationEvidence: validationEvidenceFrom(existing.verdict),
       };
     }
 
     const current = await this.requireTopic(input.userId, input.pattern);
+    const ratingEligible = isRatingEligible(input.verdict.label);
+    const evidence = validationEvidenceFrom(input.verdict);
+
+    if (!ratingEligible) {
+      const attemptId = randomUUID();
+      await this.repo.insertAttempt({
+        id: attemptId,
+        userId: input.userId,
+        sessionId: input.sessionId,
+        problemSlug: input.problemSlug,
+        pattern: input.pattern,
+        difficulty: input.difficulty,
+        coreAsk: input.coreAsk,
+        score: input.verdict.score,
+        verdictLabel: input.verdict.label,
+        hintsUsed: input.verdict.hintsUsed,
+        selfCorrections: input.selfCorrections,
+        insightResults: input.verdict.insights,
+        ratingBefore: current.rating,
+        ratingAfter: current.rating,
+        masteryBefore: current.masteryPercent,
+        masteryAfter: current.masteryPercent,
+        newlyMasteredInsights: [],
+        transcript: input.transcript,
+        verdict: input.verdict,
+      });
+
+      return {
+        pattern: input.pattern,
+        ratingBefore: current.rating,
+        ratingAfter: current.rating,
+        masteryBefore: current.masteryPercent,
+        masteryAfter: current.masteryPercent,
+        newlyMasteredInsights: [],
+        recommendedNext: await this.recommendNext(
+          input.userId,
+          input.problemSlug,
+        ),
+        ratingEligible: false,
+        ratingDelta: 0,
+        validationStatus: input.verdict.label,
+        validationEvidence: evidence,
+      };
+    }
+
     const rating = applyRatingUpdate({
       rating: current.rating,
       difficulty: input.difficulty,
@@ -233,6 +297,10 @@ export class ProgressService {
       masteryAfter,
       newlyMasteredInsights,
       recommendedNext: await this.recommendNext(input.userId, input.problemSlug),
+      ratingEligible: true,
+      ratingDelta: rating.delta,
+      validationStatus: input.verdict.label,
+      validationEvidence: evidence,
     };
   }
 

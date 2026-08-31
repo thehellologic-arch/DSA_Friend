@@ -322,11 +322,19 @@ export default function PracticeScreen({
                   {msg.content}
                 </div>
                 {verdictPlacement?.afterMessageIndex === i + 1 && (
-                  <VerdictCard
-                    verdict={verdictPlacement.verdict}
-                    progress={verdictPlacement.progress}
-                    id="current-verdict"
-                  />
+                  <div
+                    className={
+                      verdictPlacement.verdict.label === "plausible_unverified"
+                        ? "verdict-unverified"
+                        : undefined
+                    }
+                  >
+                    <VerdictCard
+                      verdict={verdictPlacement.verdict}
+                      progress={verdictPlacement.progress}
+                      id="current-verdict"
+                    />
+                  </div>
                 )}
               </Fragment>
             ))}

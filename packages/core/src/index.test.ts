@@ -602,33 +602,41 @@ describe("open-world evaluation schemas", () => {
 
   it("accepts structured validation cases and rejects invalid ones", () => {
     const config = ValidationConfigSchema.parse({
-      oracle: "two-sum",
       cases: [
-        { id: "basic", input: { nums: [2, 7, 11, 15], target: 9 }, tags: ["smoke"] },
-        { id: "empty", input: { nums: [], target: 0 } },
+        {
+          id: "basic",
+          input: { nums: [2, 7, 11, 15], target: 9 },
+          output: true,
+          tags: ["smoke"],
+        },
+        { id: "empty", input: { nums: [], target: 0 }, output: false },
       ],
     });
 
     expect(config.cases).toHaveLength(2);
     expect(config.cases[1]!.tags).toEqual([]);
+    expect(config.cases[0]!.output).toBe(true);
 
     expect(() =>
       ValidationConfigSchema.parse({
-        oracle: "two-sum",
-        cases: [{ id: "basic", tags: [] }],
+        cases: [{ id: "basic", tags: [], output: true }],
       }),
     ).toThrow();
 
     expect(() =>
       ValidationConfigSchema.parse({
-        oracle: "two-sum",
-        cases: [{ input: { nums: [1, 2] } }],
+        cases: [{ input: { nums: [1, 2] }, output: false }],
       }),
     ).toThrow();
 
     expect(() =>
       ValidationConfigSchema.parse({
-        oracle: "two-sum",
+        cases: [{ id: "basic", input: { nums: [1, 2] } }],
+      }),
+    ).toThrow();
+
+    expect(() =>
+      ValidationConfigSchema.parse({
         cases: [{}],
       }),
     ).toThrow();
@@ -720,7 +728,9 @@ describe("open-world evaluation schemas", () => {
     );
     const raw = fs.readFileSync(rubricPath, "utf-8");
 
-    expect(raw).toContain("oracle: two_sum_exists");
+    expect(raw).not.toContain("oracle:");
+    expect(raw).toContain("output: true");
+    expect(raw).toContain("output: false");
     expect(raw).toContain("id: basic_match");
     expect(raw).toContain("id: duplicate_match");
     expect(raw).toContain("id: no_match");
@@ -728,21 +738,23 @@ describe("open-world evaluation schemas", () => {
 
   it("parses the Two Sum pilot validation cases through parseRubric", () => {
     const validation: ValidationConfig = {
-      oracle: "two_sum_exists",
       cases: [
         {
           id: "basic_match",
           input: { numbers: [2, 7, 11, 15], target: 9 },
+          output: true,
           tags: ["basic"],
         },
         {
           id: "duplicate_match",
           input: { numbers: [3, 3], target: 6 },
+          output: true,
           tags: ["duplicates", "distinct_indices"],
         },
         {
           id: "no_match",
           input: { numbers: [1, 2, 4], target: 8 },
+          output: false,
           tags: ["negative_result"],
         },
       ],
@@ -750,7 +762,6 @@ describe("open-world evaluation schemas", () => {
 
     const parsed = parseRubric({ ...twoSum, validation });
 
-    expect(parsed.validation?.oracle).toBe("two_sum_exists");
     expect(parsed.validation?.cases).toHaveLength(3);
     expect(parsed.validation?.cases.map((testCase) => testCase.id)).toEqual([
       "basic_match",
@@ -761,19 +772,25 @@ describe("open-world evaluation schemas", () => {
       numbers: [2, 7, 11, 15],
       target: 9,
     });
+    expect(parsed.validation?.cases[0]?.output).toBe(true);
     expect(parsed.validation?.cases[1]?.tags).toEqual([
       "duplicates",
       "distinct_indices",
     ]);
+    expect(parsed.validation?.cases[2]?.output).toBe(false);
     expect(parsed.validation?.cases[2]?.tags).toEqual(["negative_result"]);
   });
 
   it("parses a rubric with an optional validation block", () => {
     const validation: ValidationConfig = {
-      oracle: "two-sum",
       cases: [
-        { id: "basic", input: { nums: [2, 7, 11, 15], target: 9 }, tags: ["smoke"] },
-        { id: "empty", input: { nums: [], target: 0 }, tags: [] },
+        {
+          id: "basic",
+          input: { nums: [2, 7, 11, 15], target: 9 },
+          output: true,
+          tags: ["smoke"],
+        },
+        { id: "empty", input: { nums: [], target: 0 }, output: false, tags: [] },
       ],
     };
 
@@ -782,13 +799,13 @@ describe("open-world evaluation schemas", () => {
       validation,
     });
 
-    expect(parsed.validation?.oracle).toBe("two-sum");
     expect(parsed.validation?.cases).toHaveLength(2);
     expect(parsed.validation?.cases[0]?.id).toBe("basic");
     expect(parsed.validation?.cases[0]?.input).toEqual({
       nums: [2, 7, 11, 15],
       target: 9,
     });
+    expect(parsed.validation?.cases[0]?.output).toBe(true);
     expect(parsed.validation?.cases[1]?.tags).toEqual([]);
   });
 });

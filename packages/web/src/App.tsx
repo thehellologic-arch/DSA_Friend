@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { fetchProgress } from "./api";
+import { fetchMe, type AuthUser } from "./api";
 import BottomNav, { type Tab } from "./components/BottomNav";
+import AuthScreen from "./screens/AuthScreen";
 import OnboardingScreen from "./screens/OnboardingScreen";
 import PracticeScreen from "./screens/PracticeScreen";
 import ProfileScreen from "./screens/ProfileScreen";
@@ -12,19 +13,22 @@ export default function App() {
   const [tab, setTab] = useState<Tab>("practice");
   const [requestedSlug, setRequestedSlug] = useState<string | null>(null);
   const [placementQueue, setPlacementQueue] = useState<string[]>([]);
-  const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchProgress()
-      .then((progress) => {
+    fetchMe()
+      .then((user) => {
+        setAuthUser(user);
         const local = localStorage.getItem(ONBOARDED_KEY) === "1";
-        setNeedsOnboarding(!(progress.onboarded || local));
+        setNeedsOnboarding(!(user.onboarded || local));
       })
-      .catch((e) => {
-        setError(e instanceof Error ? e.message : "Failed to load");
-        setNeedsOnboarding(false);
-      });
+      .catch(() => {
+        setAuthUser(null);
+      })
+      .finally(() => setAuthChecked(true));
   }, []);
 
   const consumeSlug = useCallback(() => {
@@ -36,12 +40,30 @@ export default function App() {
     setTab("practice");
   }, []);
 
-  if (needsOnboarding === null) {
+  const handleAuthed = (user: AuthUser) => {
+    setAuthUser(user);
+    const local = localStorage.getItem(ONBOARDED_KEY) === "1";
+    setNeedsOnboarding(!(user.onboarded || local));
+    setError(null);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem(ONBOARDED_KEY);
+    setAuthUser(null);
+    setNeedsOnboarding(false);
+    setTab("practice");
+  };
+
+  if (!authChecked) {
     return (
       <div className="app">
         <div className="loading">Loading...</div>
       </div>
     );
+  }
+
+  if (!authUser) {
+    return <AuthScreen onAuthed={handleAuthed} />;
   }
 
   if (needsOnboarding) {
@@ -77,7 +99,7 @@ export default function App() {
           />
         </div>
         <div className={tab === "profile" ? "screen-panel" : "screen-panel hidden"}>
-          <ProfileScreen />
+          <ProfileScreen username={authUser.username} onLogout={handleLogout} />
         </div>
       </main>
       {error && <p className="error">{error}</p>}

@@ -183,6 +183,75 @@ body {
   border: 1px solid #2a2a40;
 }
 
+.md-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.md-msg > :first-child {
+  margin-top: 0;
+}
+
+.md-msg > :last-child {
+  margin-bottom: 0;
+}
+
+.md-msg p,
+.md-msg ul,
+.md-msg ol {
+  margin: 0;
+}
+
+.md-msg h1,
+.md-msg h2,
+.md-msg h3,
+.md-msg h4 {
+  margin: 0.35rem 0 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #d8d8f0;
+}
+
+.md-msg ul,
+.md-msg ol {
+  padding-left: 1.2rem;
+}
+
+.md-msg li {
+  margin: 0.2rem 0;
+}
+
+.md-msg strong {
+  color: #f0f0ff;
+}
+
+.md-code-inline {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  background: #15151e;
+  border: 1px solid #343448;
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+}
+
+.md-pre {
+  margin: 0.15rem 0;
+  padding: 0.75rem;
+  overflow-x: auto;
+  background: #12121a;
+  border: 1px solid #343448;
+  border-radius: 8px;
+}
+
+.md-code-block {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  white-space: pre;
+  color: #e4e4f0;
+}
+
 .attempt-history {
   width: 100%;
   border: 1px solid #343448;
@@ -748,4 +817,56 @@ summary:focus-visible {
   * {
     scroll-behavior: auto !important;
   }
+}
+
+.auth-card {
+  gap: 0.75rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.auth-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  color: #c8c8d4;
+}
+
+.auth-input {
+  background: #12121a;
+  border: 1px solid #2a2a35;
+  border-radius: 8px;
+  color: #e8e8ed;
+  padding: 0.65rem 0.75rem;
+  font-size: 1rem;
+}
+
+.primary-btn {
+  background: #5b5bf0;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.text-btn {
+  background: transparent;
+  border: none;
+  color: #a8a8ff;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  text-align: left;
 }

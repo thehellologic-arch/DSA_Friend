@@ -81,5 +81,4 @@ export {
   recommendProblems,
 } from "./recommend.js";
 
-export { runOracle } from "./oracles.js";
 export { evaluateEvidence } from "./approach-validation.js";

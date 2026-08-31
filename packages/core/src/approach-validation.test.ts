@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   evaluateEvidence,
-  runOracle,
   type ApproachEvaluation,
   type Rubric,
 } from "./index.js";
@@ -11,23 +10,25 @@ const validationCases = [
   {
     id: "duplicates",
     input: { numbers: [3, 3], target: 6 },
+    output: true,
     tags: ["duplicate"],
   },
   {
     id: "no-solution",
     input: { numbers: [1, 2, 4], target: 8 },
+    output: false,
     tags: ["negative-result"],
   },
   {
     id: "negative-numbers",
     input: { numbers: [-3, 4, 7], target: 1 },
+    output: true,
     tags: ["negative-number"],
   },
 ];
 
 const rubric = {
   validation: {
-    oracle: "two_sum_exists",
     cases: validationCases,
   },
 } as Rubric;
@@ -60,35 +61,9 @@ function makeEvaluation(
   };
 }
 
-describe("runOracle", () => {
-  it("handles a Two Sum duplicate pair", () => {
-    expect(
-      runOracle("two_sum_exists", { numbers: [3, 3], target: 6 }),
-    ).toBe(true);
-  });
-
-  it("returns false when no Two Sum solution exists", () => {
-    expect(
-      runOracle("two_sum_exists", { numbers: [1, 2, 4], target: 8 }),
-    ).toBe(false);
-  });
-
-  it("handles negative numbers in Two Sum inputs", () => {
-    expect(
-      runOracle("two_sum_exists", { numbers: [-3, 4, 7], target: 1 }),
-    ).toBe(true);
-  });
-
-  it("rejects unknown oracle IDs", () => {
-    expect(() => runOracle("unknown", {})).toThrow(
-      "Unknown validation oracle: unknown",
-    );
-  });
-});
-
 describe("evaluateEvidence", () => {
-  it("matches reordered prediction objects to the same oracle output", () => {
-    const oracleOutput = {
+  it("matches reordered prediction objects to the same curated output", () => {
+    const expected = {
       exists: true,
       details: { pair: [3, 3], target: 6 },
     };
@@ -101,8 +76,8 @@ describe("evaluateEvidence", () => {
       details: { target: 6, pair: [3, 3] },
     };
 
-    expect(normalizedJson(firstPrediction)).toBe(normalizedJson(oracleOutput));
-    expect(normalizedJson(secondPrediction)).toBe(normalizedJson(oracleOutput));
+    expect(normalizedJson(firstPrediction)).toBe(normalizedJson(expected));
+    expect(normalizedJson(secondPrediction)).toBe(normalizedJson(expected));
   });
 
   it("accepts matching predictions and returns matched case IDs", () => {
@@ -186,17 +161,6 @@ describe("evaluateEvidence", () => {
     });
 
     expect(evaluateEvidence(rubric, evaluation)).toMatchObject({
-      status: "plausible_unverified",
-    });
-  });
-
-  it("treats an unknown configured oracle as unverified", () => {
-    const unknownOracleRubric = {
-      ...rubric,
-      validation: { ...rubric.validation!, oracle: "unknown" },
-    };
-
-    expect(evaluateEvidence(unknownOracleRubric, makeEvaluation())).toMatchObject({
       status: "plausible_unverified",
     });
   });

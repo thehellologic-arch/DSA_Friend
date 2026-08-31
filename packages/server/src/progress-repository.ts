@@ -2,6 +2,7 @@ import type { SkillLevel, Verdict } from "@reason/core";
 
 export interface UserRecord {
   id: string;
+  username?: string;
   skillLevel: SkillLevel;
   onboarded: boolean;
   createdAt: string;
@@ -16,6 +17,8 @@ export interface TopicProgressRow {
   hintUsage: number;
   lastPracticedAt: string | null;
   recentPerformance: number[];
+  /** Keys are `${problemSlug}:${insightId}` to avoid cross-problem collisions. */
+  masteredInsightKeys: string[];
 }
 
 export interface StoredAttempt {
@@ -92,6 +95,7 @@ export interface ProgressRepository {
   insertAttempt(input: CreateAttemptInput): Promise<StoredAttempt>;
   getAttemptBySessionId(sessionId: string): Promise<StoredAttempt | null>;
   listAttempts(userId: string): Promise<StoredAttempt[]>;
+  listCompletedProblemSlugs(userId: string): Promise<string[]>;
   insertRatingEvent(
     event: Omit<RatingEvent, "createdAt"> & { createdAt?: string },
   ): Promise<RatingEvent>;

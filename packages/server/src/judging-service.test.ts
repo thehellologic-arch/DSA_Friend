@@ -85,21 +85,23 @@ function twoSumRubric(withValidation: boolean): Rubric {
     },
     validation: withValidation
       ? {
-          oracle: "two_sum_exists",
           cases: [
             {
               id: "basic_match",
               input: { numbers: [2, 7, 11, 15], target: 9 },
+              output: true,
               tags: ["basic"],
             },
             {
               id: "duplicate_match",
               input: { numbers: [3, 3], target: 6 },
+              output: true,
               tags: ["duplicates"],
             },
             {
               id: "no_match",
               input: { numbers: [1, 2, 4], target: 8 },
+              output: false,
               tags: ["negative_result"],
             },
           ],

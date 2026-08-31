@@ -1,5 +1,6 @@
 import type { Verdict } from "@reason/core";
 import VerdictCard from "./VerdictCard";
+import MarkdownMessage from "./MarkdownMessage";
 
 export type ChatMessage = { role: "USER" | "AI"; content: string };
 
@@ -30,7 +31,11 @@ export default function AttemptHistory({
                 key={messageIndex}
                 className={`msg ${message.role === "USER" ? "user" : "ai"}`}
               >
-                {message.content}
+                {message.role === "AI" ? (
+                  <MarkdownMessage content={message.content} />
+                ) : (
+                  message.content
+                )}
               </div>
             ))}
             {attempt.verdict && <VerdictCard verdict={attempt.verdict} />}

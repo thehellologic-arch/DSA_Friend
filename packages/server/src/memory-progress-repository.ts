@@ -63,8 +63,12 @@ export class MemoryProgressRepository implements ProgressRepository {
   }
 
   async upsertTopicProgress(row: TopicProgressRow): Promise<TopicProgressRow> {
-    this.topics.set(`${row.userId}:${row.pattern}`, row);
-    return row;
+    const normalized = {
+      ...row,
+      masteredInsightKeys: row.masteredInsightKeys ?? [],
+    };
+    this.topics.set(`${row.userId}:${row.pattern}`, normalized);
+    return normalized;
   }
 
   async insertAttempt(input: CreateAttemptInput): Promise<StoredAttempt> {
@@ -82,6 +86,20 @@ export class MemoryProgressRepository implements ProgressRepository {
 
   async listAttempts(userId: string): Promise<StoredAttempt[]> {
     return this.attempts.filter((attempt) => attempt.userId === userId);
+  }
+
+  async listCompletedProblemSlugs(userId: string): Promise<string[]> {
+    return [
+      ...new Set(
+        this.attempts
+          .filter(
+            (attempt) =>
+              attempt.userId === userId &&
+              attempt.verdictLabel !== "plausible_unverified",
+          )
+          .map((attempt) => attempt.problemSlug),
+      ),
+    ];
   }
 
   async insertRatingEvent(

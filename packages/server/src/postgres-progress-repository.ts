@@ -78,6 +78,7 @@ function toTopic(row: TopicRow): TopicProgressRow {
     hintUsage: row.hint_usage,
     lastPracticedAt: iso(row.last_practiced_at),
     recentPerformance: jsonValue<number[]>(row.recent_performance),
+    masteredInsightKeys: [],
   };
 }
 
@@ -255,6 +256,15 @@ export class PostgresProgressRepository implements ProgressRepository {
       [userId],
     );
     return result.rows.map(toAttempt);
+  }
+
+  async listCompletedProblemSlugs(userId: string): Promise<string[]> {
+    const result = await this.pool.query<{ problem_slug: string }>(
+      `SELECT DISTINCT problem_slug FROM attempts
+       WHERE user_id = $1 AND verdict_label <> 'plausible_unverified'`,
+      [userId],
+    );
+    return result.rows.map((row) => row.problem_slug);
   }
 
   async insertRatingEvent(

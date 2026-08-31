@@ -227,6 +227,101 @@ describe("JudgingService novel routing", () => {
     );
     expect(req.challengeAnswer).toBeNull();
     expect(req.priorApproach).toBeNull();
+    expect(req.constraints).not.toContain(session.rubric.optimal.approach);
+    expect(req.constraints).not.toContain(session.rubric.optimal.key_insight);
+  });
+
+  it("does not leak the canonical approach into evaluator constraints", async () => {
+    const { judging, session, evaluateApproach } = await createHarness(true);
+    evaluateApproach.mockResolvedValueOnce({
+      evaluation: makeEvaluation({
+        approach: {
+          ...emptyApproach,
+          criticalGaps: ["gap"],
+        },
+        casePredictions: [],
+        recommendation: "challenge",
+        challenge: "Clarify insert order.",
+      }),
+      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+    });
+
+    await judging.handleTurn(session.id, "A novel hashing walkthrough.", "k1");
+
+    const req = evaluateApproach.mock.calls[0]![0] as ApproachEvaluationRequest;
+    expect(req.constraints).not.toContain(session.rubric.optimal.approach);
+    expect(req.constraints).not.toContain(session.rubric.optimal.key_insight);
+    for (const example of session.rubric.optimal.examples) {
+      expect(req.constraints).not.toContain(example.output);
+    }
+    expect(req.constraints).toMatch(/O\(n\)/);
+  });
+
+  it("clears a pending novel challenge when a local fast path diverts", async () => {
+    const { judging, session, evaluateApproach } = await createHarness(true);
+    evaluateApproach
+      .mockResolvedValueOnce({
+        evaluation: makeEvaluation({
+          approach: {
+            ...emptyApproach,
+            criticalGaps: ["Insert timing unclear"],
+          },
+          casePredictions: [],
+          recommendation: "challenge",
+          challenge: "When do you insert?",
+        }),
+        usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+      })
+      .mockResolvedValueOnce({
+        evaluation: makeEvaluation({
+          approach: {
+            ...emptyApproach,
+            criticalGaps: ["Still gaps after divert"],
+          },
+          casePredictions: [],
+          recommendation: "challenge",
+          challenge: "Would be a second challenge",
+        }),
+        usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+      });
+
+    await judging.handleTurn(
+      session.id,
+      "I keep a set and look for complements.",
+      "k1",
+    );
+    expect(session.context.pendingNovelChallenge).toBe("When do you insert?");
+    expect(session.context.novelChallengeUsed).toBe(true);
+
+    const sampleResponse = await judging.handleTurn(
+      session.id,
+      "Can you give me a sample input?",
+      "k2",
+    );
+    expect(sampleResponse.action.kind).toBe("clarification");
+    expect(session.context.pendingNovelChallenge).toBeNull();
+    expect(session.context.novelChallengeUsed).toBe(true);
+    expect(evaluateApproach).toHaveBeenCalledTimes(1);
+
+    const later = await judging.handleTurn(
+      session.id,
+      "I scan once with a hash set of previously seen values.",
+      "k3",
+    );
+
+    expect(evaluateApproach).toHaveBeenCalledTimes(2);
+    const secondReq = evaluateApproach.mock
+      .calls[1]![0] as ApproachEvaluationRequest;
+    expect(secondReq.challengeAnswer).toBeNull();
+    expect(secondReq.priorApproach).toBeNull();
+    expect(secondReq.latestUserMessage).toBe(
+      "I scan once with a hash set of previously seen values.",
+    );
+    expect(later.action.kind).toBe("verdict");
+    if (later.action.kind === "verdict") {
+      expect(later.action.verdict.label).toBe("plausible_unverified");
+    }
+    expect(later.action.kind).not.toBe("novel_challenge");
   });
 
   it("creates an optimal verdict when supported evidence matches target complexity", async () => {

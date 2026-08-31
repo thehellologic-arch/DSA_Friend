@@ -143,9 +143,16 @@ function buildEvaluationRequest(
   },
 ): ApproachEvaluationRequest {
   const validation = session.rubric.validation!;
+  const insightConstraints = session.rubric.required_insights
+    .map((insight) => insight.desc)
+    .join("; ");
+  const edgeConstraints =
+    session.rubric.edge_cases.length > 0
+      ? ` Edge cases to respect: ${session.rubric.edge_cases.join(", ")}.`
+      : "";
   return {
     coreAsk: session.rubric.core_ask,
-    constraints: `${session.rubric.optimal.approach} Target complexity: ${session.rubric.optimal.complexity.time} time, ${session.rubric.optimal.complexity.space} space.`,
+    constraints: `Required insights: ${insightConstraints}. Target complexity: ${session.rubric.optimal.complexity.time} time, ${session.rubric.optimal.complexity.space} space.${edgeConstraints}`,
     cases: validation.cases.map(({ id, input }) => ({ id, input })),
     priorApproach: opts.priorApproach,
     challengeAnswer: opts.challengeAnswer,
@@ -217,6 +224,7 @@ export class JudgingService {
     let action: TurnAction;
 
     if (tutorIntent) {
+      session.context.pendingNovelChallenge = null;
       classification = synthesizeIntentClassification(
         session.rubric,
         tutorIntent,
@@ -230,6 +238,7 @@ export class JudgingService {
       }
       action = this.applyClassification(session, classification, hadWrongBefore);
     } else if (layer1Match) {
+      session.context.pendingNovelChallenge = null;
       classification = synthesizeWrongApproachClassification(
         session.rubric,
         layer1Match,
@@ -237,6 +246,7 @@ export class JudgingService {
       session.context.hadWrongApproach = true;
       action = this.applyClassification(session, classification, hadWrongBefore);
     } else if (altMatch) {
+      session.context.pendingNovelChallenge = null;
       classification = synthesizeAcceptableClassification(
         session.rubric,
         altMatch,

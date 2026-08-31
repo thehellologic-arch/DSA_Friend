@@ -1,9 +1,15 @@
 import {
   ClassifyResultSchema,
+  type ApproachEvaluation,
   type ClassifyRequest,
   type ClassifyResult,
   type Rubric,
 } from "@reason/core";
+import {
+  evaluateApproach as runApproachEvaluation,
+  type ApproachEvaluationRequest,
+  type LlmUsage,
+} from "./approach-evaluator.js";
 import type { ClarifyRequest, LLMProvider } from "./ollama-provider.js";
 
 const CLASSIFIER_SYSTEM_PROMPT = `You are a grading classifier, not a tutor. Given a problem's required insights and a student's stated approach, decide for each insight whether the student's words satisfy it. Judge ONLY against the provided rubric. Do NOT praise, do NOT give hints, do NOT add commentary. If evidence is absent, return "no".
@@ -80,7 +86,7 @@ export class OpenAIProvider implements LLMProvider {
     input: ClassifyRequest,
     rubric: Rubric,
   ): Promise<ClassifyResult> {
-    const content = await this.chat(
+    const { content } = await this.chat(
       CLASSIFIER_SYSTEM_PROMPT,
       JSON.stringify(buildClassifyPayload(input, rubric)),
       true,
@@ -89,7 +95,7 @@ export class OpenAIProvider implements LLMProvider {
   }
 
   async clarify(input: ClarifyRequest, rubric: Rubric): Promise<string> {
-    return this.chat(
+    const { content } = await this.chat(
       CLARIFICATION_SYSTEM_PROMPT,
       JSON.stringify({
         coreAsk: rubric.core_ask,
@@ -100,13 +106,22 @@ export class OpenAIProvider implements LLMProvider {
       }),
       false,
     );
+    return content;
+  }
+
+  async evaluateApproach(
+    input: ApproachEvaluationRequest,
+  ): Promise<{ evaluation: ApproachEvaluation; usage: LlmUsage }> {
+    return runApproachEvaluation(input, (systemPrompt, userContent) =>
+      this.chat(systemPrompt, userContent, true),
+    );
   }
 
   private async chat(
     systemPrompt: string,
     userContent: string,
     jsonMode: boolean,
-  ): Promise<string> {
+  ): Promise<{ content: string; usage: LlmUsage }> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       Authorization: `Bearer ${this.config.apiKey}`,
@@ -142,9 +157,30 @@ export class OpenAIProvider implements LLMProvider {
 
     const data = (await response.json()) as {
       choices?: { message?: { content?: string } }[];
+      usage?: {
+        prompt_tokens?: number;
+        completion_tokens?: number;
+        total_tokens?: number;
+      };
     };
     const content = data.choices?.[0]?.message?.content?.trim();
     if (!content) throw new Error("Empty OpenRouter response");
-    return content;
+
+    const usage: LlmUsage = {
+      promptTokens:
+        typeof data.usage?.prompt_tokens === "number"
+          ? data.usage.prompt_tokens
+          : null,
+      completionTokens:
+        typeof data.usage?.completion_tokens === "number"
+          ? data.usage.completion_tokens
+          : null,
+      totalTokens:
+        typeof data.usage?.total_tokens === "number"
+          ? data.usage.total_tokens
+          : null,
+    };
+
+    return { content, usage };
   }
 }

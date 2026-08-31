@@ -1,9 +1,15 @@
 import {
   ClassifyResultSchema,
+  type ApproachEvaluation,
   type ClassifyRequest,
   type ClassifyResult,
   type Rubric,
 } from "@reason/core";
+import {
+  evaluateApproach as runApproachEvaluation,
+  type ApproachEvaluationRequest,
+  type LlmUsage,
+} from "./approach-evaluator.js";
 import type { ClarifyRequest, LLMProvider } from "./ollama-provider.js";
 
 const DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
@@ -45,6 +51,11 @@ interface GeminiResponse {
       parts?: { text?: string }[];
     };
   }[];
+  usageMetadata?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    totalTokenCount?: number;
+  };
 }
 
 function extractText(data: GeminiResponse): string {
@@ -96,16 +107,16 @@ export class GeminiProvider implements LLMProvider {
     input: ClassifyRequest,
     rubric: Rubric,
   ): Promise<ClassifyResult> {
-    const text = await this.generate(
+    const { content } = await this.generate(
       CLASSIFIER_SYSTEM_PROMPT,
       JSON.stringify(buildClassifyPayload(input, rubric)),
       true,
     );
-    return ClassifyResultSchema.parse(extractJson(text));
+    return ClassifyResultSchema.parse(extractJson(content));
   }
 
   async clarify(input: ClarifyRequest, rubric: Rubric): Promise<string> {
-    return this.generate(
+    const { content } = await this.generate(
       CLARIFICATION_SYSTEM_PROMPT,
       JSON.stringify({
         coreAsk: rubric.core_ask,
@@ -116,13 +127,22 @@ export class GeminiProvider implements LLMProvider {
       }),
       false,
     );
+    return content;
+  }
+
+  async evaluateApproach(
+    input: ApproachEvaluationRequest,
+  ): Promise<{ evaluation: ApproachEvaluation; usage: LlmUsage }> {
+    return runApproachEvaluation(input, (systemPrompt, userContent) =>
+      this.generate(systemPrompt, userContent, true),
+    );
   }
 
   private async generate(
     systemPrompt: string,
     userContent: string,
     jsonMode: boolean,
-  ): Promise<string> {
+  ): Promise<{ content: string; usage: LlmUsage }> {
     const baseUrl = (this.config.baseUrl ?? DEFAULT_BASE_URL).replace(/\/$/, "");
     const model = encodeURIComponent(this.config.model);
     const response = await fetch(`${baseUrl}/models/${model}:generateContent`, {
@@ -154,6 +174,22 @@ export class GeminiProvider implements LLMProvider {
       throw new Error(`Gemini API error ${response.status}: ${body}`);
     }
 
-    return extractText((await response.json()) as GeminiResponse);
+    const data = (await response.json()) as GeminiResponse;
+    const usage: LlmUsage = {
+      promptTokens:
+        typeof data.usageMetadata?.promptTokenCount === "number"
+          ? data.usageMetadata.promptTokenCount
+          : null,
+      completionTokens:
+        typeof data.usageMetadata?.candidatesTokenCount === "number"
+          ? data.usageMetadata.candidatesTokenCount
+          : null,
+      totalTokens:
+        typeof data.usageMetadata?.totalTokenCount === "number"
+          ? data.usageMetadata.totalTokenCount
+          : null,
+    };
+
+    return { content: extractText(data), usage };
   }
 }

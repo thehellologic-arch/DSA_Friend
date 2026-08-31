@@ -5,8 +5,10 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx watch src/index.ts",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "test": "vitest run"
   },
+
   "dependencies": {
     "@fastify/cookie": "^11.1.2",
     "@fastify/cors": "^10.0.1",
@@ -22,6 +24,7 @@
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.10.2",
     "@types/pg": "^8.23.1",
-    "tsx": "^4.19.2"
+    "tsx": "^4.19.2",
+    "vitest": "^2.1.8"
   }
 }

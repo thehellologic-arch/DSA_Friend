@@ -1,11 +1,18 @@
 import {
   ClassifyResultSchema,
+  type ApproachEvaluation,
   type ClassifyRequest,
   type ClassifyResult,
   type Rubric,
 } from "@reason/core";
+import {
+  evaluateApproach as runApproachEvaluation,
+  type ApproachEvaluationRequest,
+  type LlmUsage,
+} from "./approach-evaluator.js";
 
 export type { ClassifyRequest };
+export type { ApproachEvaluationRequest, LlmUsage };
 
 const CLASSIFIER_SYSTEM_PROMPT = `You are a grading classifier, not a tutor. Given a problem's required insights and a student's stated approach, decide for each insight whether the student's words satisfy it. Judge ONLY against the provided rubric. Do NOT praise, do NOT give hints, do NOT add commentary. If evidence is absent, return "no".
 
@@ -40,6 +47,9 @@ export interface ClarifyRequest {
 export interface LLMProvider {
   classify(input: ClassifyRequest, rubric: Rubric): Promise<ClassifyResult>;
   clarify(input: ClarifyRequest, rubric: Rubric): Promise<string>;
+  evaluateApproach(
+    input: ApproachEvaluationRequest,
+  ): Promise<{ evaluation: ApproachEvaluation; usage: LlmUsage }>;
 }
 
 export interface OllamaConfig {
@@ -93,12 +103,12 @@ export class OllamaProvider implements LLMProvider {
     let lastError: Error | null = null;
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const text = await this.callOllamaChat(
+        const { content } = await this.callOllamaChat(
           CLASSIFIER_SYSTEM_PROMPT,
           userContent,
           true,
         );
-        const result = extractJson(text);
+        const result = extractJson(content);
         return ClassifyResultSchema.parse(result);
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
@@ -113,7 +123,7 @@ export class OllamaProvider implements LLMProvider {
   }
 
   async clarify(input: ClarifyRequest, rubric: Rubric): Promise<string> {
-    return this.callOllamaChat(
+    const { content } = await this.callOllamaChat(
       CLARIFICATION_SYSTEM_PROMPT,
       JSON.stringify({
         coreAsk: rubric.core_ask,
@@ -124,13 +134,22 @@ export class OllamaProvider implements LLMProvider {
       }),
       false,
     );
+    return content;
+  }
+
+  async evaluateApproach(
+    input: ApproachEvaluationRequest,
+  ): Promise<{ evaluation: ApproachEvaluation; usage: LlmUsage }> {
+    return runApproachEvaluation(input, (systemPrompt, userContent) =>
+      this.callOllamaChat(systemPrompt, userContent, true),
+    );
   }
 
   private async callOllamaChat(
     systemPrompt: string,
     userContent: string,
     jsonMode: boolean,
-  ): Promise<string> {
+  ): Promise<{ content: string; usage: LlmUsage }> {
     const url = `${this.config.baseUrl.replace(/\/$/, "")}/api/chat`;
 
     const response = await fetch(url, {
@@ -162,6 +181,8 @@ export class OllamaProvider implements LLMProvider {
 
     const data = (await response.json()) as {
       message?: { content?: string; reasoning?: string };
+      prompt_eval_count?: number;
+      eval_count?: number;
     };
 
     const message = data.message;
@@ -171,6 +192,20 @@ export class OllamaProvider implements LLMProvider {
       "";
 
     if (!text) throw new Error("Empty LLM response");
-    return text;
+
+    const promptTokens =
+      typeof data.prompt_eval_count === "number" ? data.prompt_eval_count : null;
+    const completionTokens =
+      typeof data.eval_count === "number" ? data.eval_count : null;
+    const usage: LlmUsage = {
+      promptTokens,
+      completionTokens,
+      totalTokens:
+        promptTokens !== null && completionTokens !== null
+          ? promptTokens + completionTokens
+          : null,
+    };
+
+    return { content: text, usage };
   }
 }

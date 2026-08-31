@@ -22,10 +22,21 @@ import {
   type TurnAction,
   type Verdict,
 } from "@reason/core";
+import { APPROACH_EVALUATION_PROMPT_VERSION } from "./approach-evaluation-prompt.js";
 import {
   ApproachEvaluationUnavailableError,
   type ApproachEvaluationRequest,
 } from "./approach-evaluator.js";
+import {
+  EvaluationCache,
+  buildEvaluationCacheKey,
+} from "./evaluation-cache.js";
+import {
+  logNovelApproachEvaluation,
+  resolveNovelEvaluationMode,
+  type EvaluationLogFn,
+  type NovelEvaluationMode,
+} from "./evaluation-metrics.js";
 import type { LLMProvider } from "./ollama-provider.js";
 import type { ProgressService, ProgressUpdate } from "./progress-service.js";
 import {
@@ -34,6 +45,13 @@ import {
   type Session,
   updateSessionState,
 } from "./session-store.js";
+
+export interface JudgingServiceOptions {
+  mode?: NovelEvaluationMode;
+  model?: string;
+  cache?: EvaluationCache;
+  logEvaluation?: EvaluationLogFn;
+}
 
 export interface TurnResponse {
   action: TurnAction;
@@ -163,11 +181,26 @@ function buildEvaluationRequest(
 }
 
 export class JudgingService {
+  private readonly mode: NovelEvaluationMode;
+  private readonly model: string;
+  private readonly cache: EvaluationCache;
+  private readonly logEvaluation: EvaluationLogFn;
+
   constructor(
     private store: InMemorySessionStore,
     private llm: LLMProvider,
     private progress: ProgressService,
-  ) {}
+    options: JudgingServiceOptions = {},
+  ) {
+    this.mode = options.mode ?? resolveNovelEvaluationMode();
+    this.model = options.model ?? "unknown";
+    this.cache = options.cache ?? new EvaluationCache();
+    this.logEvaluation =
+      options.logEvaluation ??
+      ((event) => {
+        logNovelApproachEvaluation(event);
+      });
+  }
 
   async handleTurn(
     sessionId: string,
@@ -253,81 +286,72 @@ export class JudgingService {
       );
       session.context.lastAcceptableAlternative = altMatch;
       action = this.applyClassification(session, classification, hadWrongBefore);
-    } else if (session.rubric.validation) {
+    } else if (session.rubric.validation && this.mode !== "off") {
       const isChallengeAnswer = session.context.pendingNovelChallenge != null;
       const priorApproach = isChallengeAnswer
         ? session.context.approachModel
         : null;
       const challengeAnswer = isChallengeAnswer ? message : null;
 
-      if (isChallengeAnswer) {
+      if (isChallengeAnswer && this.mode === "on") {
         session.context.pendingNovelChallenge = null;
       }
 
       try {
-        const { evaluation } = await this.llm.evaluateApproach(
-          buildEvaluationRequest(session, message, {
-            priorApproach,
-            challengeAnswer,
-          }),
-        );
-        session.context.approachModel = evaluation.approach;
+        const evaluation = await this.runNovelEvaluation(session, message, {
+          priorApproach,
+          challengeAnswer,
+          isChallengeAnswer,
+        });
 
-        const handled = this.handleEvaluation(
-          session,
-          evaluation,
-          hadWrongBefore,
-        );
-        classification = handled.classification;
-        action = handled.action;
+        if (this.mode === "shadow") {
+          ({ classification, action } = await this.runClassifyPath(
+            session,
+            message,
+            hadWrongBefore,
+          ));
+        } else {
+          session.context.approachModel = evaluation.approach;
+          const handled = this.handleEvaluation(
+            session,
+            evaluation,
+            hadWrongBefore,
+          );
+          classification = handled.classification;
+          action = handled.action;
+        }
       } catch (err) {
         if (err instanceof ApproachEvaluationUnavailableError) {
-          classification = synthesizeIntentClassification(
-            session.rubric,
-            "approach",
-          );
-          action = {
-            kind: "verdict",
-            verdict: buildLabeledVerdict(
+          if (this.mode === "shadow") {
+            ({ classification, action } = await this.runClassifyPath(
               session,
-              "plausible_unverified",
-              "Approach evaluation was unavailable, so this attempt could not be verified.",
-            ),
-          };
+              message,
+              hadWrongBefore,
+            ));
+          } else {
+            classification = synthesizeIntentClassification(
+              session.rubric,
+              "approach",
+            );
+            action = {
+              kind: "verdict",
+              verdict: buildLabeledVerdict(
+                session,
+                "plausible_unverified",
+                "Approach evaluation was unavailable, so this attempt could not be verified.",
+              ),
+            };
+          }
         } else {
           throw err;
         }
       }
     } else {
-      const classifyRequest: ClassifyRequest = {
-        coreAsk: session.rubric.core_ask,
-        requiredInsights: session.rubric.required_insights.map((i) => ({
-          id: i.id,
-          desc: i.desc,
-        })),
-        wrongApproaches: session.rubric.common_wrong_approaches.map((w) => ({
-          id: w.id,
-          whyWrong: w.why_wrong,
-          signals: w.match_signals,
-        })),
-        history: getTranscript(session).slice(0, -1),
-        latestUserMessage: message,
-      };
-
-      classification = await this.llm.classify(
-        classifyRequest,
-        session.rubric,
-      );
-
-      if (classification.matchedWrongApproach) {
-        session.context.hadWrongApproach = true;
-      }
-      if (classification.matchedAcceptableAlternative) {
-        session.context.lastAcceptableAlternative =
-          classification.matchedAcceptableAlternative;
-      }
-
-      action = this.applyClassification(session, classification, hadWrongBefore);
+      ({ classification, action } = await this.runClassifyPath(
+        session,
+        message,
+        hadWrongBefore,
+      ));
     }
 
     if (action.kind === "follow_up" || action.kind === "counterexample") {
@@ -367,6 +391,123 @@ export class JudgingService {
 
     session.idempotencyCache.set(idempotencyKey, action);
     return this.buildResponse(session, action);
+  }
+
+  private async runClassifyPath(
+    session: Session,
+    message: string,
+    hadWrongBefore: boolean,
+  ): Promise<{ classification: ClassifyResult; action: TurnAction }> {
+    const classifyRequest: ClassifyRequest = {
+      coreAsk: session.rubric.core_ask,
+      requiredInsights: session.rubric.required_insights.map((i) => ({
+        id: i.id,
+        desc: i.desc,
+      })),
+      wrongApproaches: session.rubric.common_wrong_approaches.map((w) => ({
+        id: w.id,
+        whyWrong: w.why_wrong,
+        signals: w.match_signals,
+      })),
+      history: getTranscript(session).slice(0, -1),
+      latestUserMessage: message,
+    };
+
+    const classification = await this.llm.classify(
+      classifyRequest,
+      session.rubric,
+    );
+
+    if (classification.matchedWrongApproach) {
+      session.context.hadWrongApproach = true;
+    }
+    if (classification.matchedAcceptableAlternative) {
+      session.context.lastAcceptableAlternative =
+        classification.matchedAcceptableAlternative;
+    }
+
+    return {
+      classification,
+      action: this.applyClassification(session, classification, hadWrongBefore),
+    };
+  }
+
+  private async runNovelEvaluation(
+    session: Session,
+    message: string,
+    opts: {
+      priorApproach: ApproachModel | null;
+      challengeAnswer: string | null;
+      isChallengeAnswer: boolean;
+    },
+  ): Promise<ApproachEvaluation> {
+    const validation = session.rubric.validation!;
+    const cases = validation.cases.map(({ id, input }) => ({ id, input }));
+    const cacheKey = buildEvaluationCacheKey({
+      rubricVersion: session.rubric.rubric_version,
+      model: this.model,
+      promptVersion: APPROACH_EVALUATION_PROMPT_VERSION,
+      approachModel: opts.priorApproach ?? message,
+      cases,
+      challengeAnswer: opts.challengeAnswer,
+    });
+
+    const cached = this.cache.get(cacheKey);
+    if (cached) {
+      this.logEvaluation({
+        event: "novel_approach_evaluation",
+        route: cached.route,
+        model: this.model,
+        promptTokens: null,
+        completionTokens: null,
+        latencyMs: 0,
+        cacheHit: true,
+        challengeUsed: opts.isChallengeAnswer,
+        outcome: cached.recommendation,
+      });
+      return cached;
+    }
+
+    const started = Date.now();
+    try {
+      const { evaluation, usage } = await this.llm.evaluateApproach(
+        buildEvaluationRequest(session, message, {
+          priorApproach: opts.priorApproach,
+          challengeAnswer: opts.challengeAnswer,
+        }),
+      );
+      const latencyMs = Date.now() - started;
+      this.cache.set(cacheKey, evaluation);
+      this.logEvaluation({
+        event: "novel_approach_evaluation",
+        route: evaluation.route,
+        model: this.model,
+        promptTokens: usage.promptTokens,
+        completionTokens: usage.completionTokens,
+        latencyMs,
+        cacheHit: false,
+        challengeUsed: opts.isChallengeAnswer,
+        outcome: evaluation.recommendation,
+      });
+      return evaluation;
+    } catch (err) {
+      const latencyMs = Date.now() - started;
+      this.logEvaluation({
+        event: "novel_approach_evaluation",
+        route: null,
+        model: this.model,
+        promptTokens: null,
+        completionTokens: null,
+        latencyMs,
+        cacheHit: false,
+        challengeUsed: opts.isChallengeAnswer,
+        outcome:
+          err instanceof ApproachEvaluationUnavailableError
+            ? "unavailable"
+            : "error",
+      });
+      throw err;
+    }
   }
 
   private handleEvaluation(

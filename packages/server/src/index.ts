@@ -15,6 +15,7 @@ import { createProgressRepository } from "./create-progress-repo.js";
 import { GeminiProvider } from "./gemini-provider.js";
 import { ensureGuest } from "./guest.js";
 import { JudgingService } from "./judging-service.js";
+import { resolveNovelEvaluationMode } from "./evaluation-metrics.js";
 import { OllamaProvider } from "./ollama-provider.js";
 import { OpenAIProvider } from "./openai-provider.js";
 import { ProgressService } from "./progress-service.js";
@@ -85,9 +86,18 @@ const llmLabel = OPENROUTER_API_KEY
   : GEMINI_API_KEY
     ? `Gemini (${GEMINI_MODEL})`
     : `Ollama ${OLLAMA_BASE_URL} (${OLLAMA_MODEL})`;
+const llmModel = OPENROUTER_API_KEY
+  ? OPENROUTER_MODEL
+  : GEMINI_API_KEY
+    ? GEMINI_MODEL
+    : OLLAMA_MODEL;
 const progressRepo = await createProgressRepository();
 const progress = new ProgressService(progressRepo, () => listProblems());
-const judging = new JudgingService(store, llm, progress);
+const novelEvaluationMode = resolveNovelEvaluationMode();
+const judging = new JudgingService(store, llm, progress, {
+  mode: novelEvaluationMode,
+  model: llmModel,
+});
 
 const app = Fastify({ logger: true, trustProxy: true });
 await app.register(cors, { origin: true, credentials: true });

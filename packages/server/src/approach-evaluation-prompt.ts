@@ -1,3 +1,5 @@
+export const APPROACH_EVALUATION_PROMPT_VERSION = "1";
+
 export const APPROACH_EVALUATION_SYSTEM_PROMPT = `First route the approach as known_canonical, novel, or underspecified. Grade
 canonical insights when applicable. Interpret only the student's stated
 algorithm and do not complete missing steps.

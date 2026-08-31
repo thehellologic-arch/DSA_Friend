@@ -145,7 +145,10 @@ function classifyResult(
   };
 }
 
-async function createHarness(withValidation: boolean) {
+async function createHarness(
+  withValidation: boolean,
+  options: { mode?: "off" | "shadow" | "on" } = {},
+) {
   const store = new InMemorySessionStore();
   const classify = vi.fn(async () => classifyResult());
   const evaluateApproach = vi.fn(
@@ -165,7 +168,11 @@ async function createHarness(withValidation: boolean) {
   };
   const progress = new ProgressService(new MemoryProgressRepository(), () => []);
   await progress.ensureUser("user-1", "beginner", ["hashing"]);
-  const judging = new JudgingService(store, llm, progress);
+  const judging = new JudgingService(store, llm, progress, {
+    mode: options.mode ?? "on",
+    model: "test-model",
+    logEvaluation: () => {},
+  });
   const session = store.create(
     "two-sum-hash-set",
     twoSumRubric(withValidation),
@@ -605,5 +612,53 @@ describe("JudgingService novel routing", () => {
     expect(session.context.approachModel).toBeNull();
     expect(session.context.novelChallengeUsed).toBe(false);
     expect(session.context.pendingNovelChallenge).toBeNull();
+  });
+});
+
+describe("JudgingService novel evaluation modes", () => {
+  it("never calls evaluateApproach when mode is off", async () => {
+    const { judging, session, classify, evaluateApproach } =
+      await createHarness(true, { mode: "off" });
+
+    const response = await judging.handleTurn(
+      session.id,
+      "I keep a set of numbers I have already seen and check complements.",
+      "k1",
+    );
+
+    expect(evaluateApproach).not.toHaveBeenCalled();
+    expect(classify).toHaveBeenCalledTimes(1);
+    expect(response.action.kind).toBe("follow_up");
+    expect(response.action.kind).not.toBe("novel_challenge");
+  });
+
+  it("calls evaluateApproach in shadow but returns classify-path UX", async () => {
+    const { judging, session, classify, evaluateApproach } =
+      await createHarness(true, { mode: "shadow" });
+    evaluateApproach.mockResolvedValueOnce({
+      evaluation: makeEvaluation({
+        approach: {
+          ...emptyApproach,
+          criticalGaps: ["Insert timing unclear"],
+        },
+        casePredictions: [],
+        recommendation: "challenge",
+        challenge: "When do you insert?",
+      }),
+      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+    });
+
+    const response = await judging.handleTurn(
+      session.id,
+      "I keep a set of numbers I have already seen and check complements.",
+      "k1",
+    );
+
+    expect(evaluateApproach).toHaveBeenCalledTimes(1);
+    expect(classify).toHaveBeenCalledTimes(1);
+    expect(response.action.kind).toBe("follow_up");
+    expect(response.action.kind).not.toBe("novel_challenge");
+    expect(session.context.pendingNovelChallenge).toBeNull();
+    expect(session.context.novelChallengeUsed).toBe(false);
   });
 });

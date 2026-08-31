@@ -5,8 +5,27 @@ import type {
 } from "./rubric.js";
 import { runOracle } from "./oracles.js";
 
-function normalizedJson(value: unknown): string | undefined {
-  return JSON.stringify(value);
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(canonicalize);
+  }
+
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [
+          key,
+          canonicalize((value as Record<string, unknown>)[key]),
+        ]),
+    );
+  }
+
+  return value;
+}
+
+export function normalizedJson(value: unknown): string | undefined {
+  return JSON.stringify(canonicalize(value));
 }
 
 export function evaluateEvidence(

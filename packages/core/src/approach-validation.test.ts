@@ -5,6 +5,7 @@ import {
   type ApproachEvaluation,
   type Rubric,
 } from "./index.js";
+import { normalizedJson } from "./approach-validation.js";
 
 const validationCases = [
   {
@@ -86,6 +87,24 @@ describe("runOracle", () => {
 });
 
 describe("evaluateEvidence", () => {
+  it("matches reordered prediction objects to the same oracle output", () => {
+    const oracleOutput = {
+      exists: true,
+      details: { pair: [3, 3], target: 6 },
+    };
+    const firstPrediction = {
+      details: { target: 6, pair: [3, 3] },
+      exists: true,
+    };
+    const secondPrediction = {
+      exists: true,
+      details: { target: 6, pair: [3, 3] },
+    };
+
+    expect(normalizedJson(firstPrediction)).toBe(normalizedJson(oracleOutput));
+    expect(normalizedJson(secondPrediction)).toBe(normalizedJson(oracleOutput));
+  });
+
   it("accepts matching predictions and returns matched case IDs", () => {
     expect(evaluateEvidence(rubric, makeEvaluation())).toEqual({
       status: "acceptable",
